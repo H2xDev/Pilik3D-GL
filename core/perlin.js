@@ -1,62 +1,60 @@
-/**
-  * Perlin noise generator
-  * @author joeiddon<iddonjoe@gmail.com>
-  */
-export class Perlin {
-  static instance = new Perlin();
+function fade(t) {
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
 
-  constructor() {
-    if (Perlin.instance) {
-      return Perlin.instance;
-    }
+function fract(x) {
+  return x - Math.floor(x);
+}
 
-    this.seed();
-  }
+function floorVec2([x, y]) {
+  return [Math.floor(x), Math.floor(y)];
+}
 
-  rand_vect() {
-      let theta = Math.random() * 2 * Math.PI;
-      return {x: Math.cos(theta), y: Math.sin(theta)};
-  }
+function fractVec2([x, y]) {
+  return [fract(x), fract(y)];
+}
 
-  dot_prod_grid(x, y, vx, vy) {
-      let g_vect;
-      let d_vect = {x: x - vx, y: y - vy};
-      if (this.gradients[[vx,vy]]){
-          g_vect = this.gradients[[vx,vy]];
-      } else {
-          g_vect = this.rand_vect();
-          this.gradients[[vx, vy]] = g_vect;
-      }
-      return d_vect.x * g_vect.x + d_vect.y * g_vect.y;
-  }
+function dot2([x1, y1], [x2, y2]) {
+  return x1 * x2 + y1 * y2;
+}
 
-  smootherstep(x) {
-      return 6*x**5 - 15*x**4 + 10*x**3;
-  }
+function mix(a, b, t) {
+  return a * (1 - t) + b * t;
+}
 
-  interp(x, a, b) {
-      return a + this.smootherstep(x) * (b-a);
-  }
+function hash([x, y]) {
+  return fract(Math.sin(x * 127.1 + y * 311.7) * 43758.5453123);
+}
 
-  seed() {
-      this.gradients = {};
-      this.memory = {};
-  }
+function grad2(h) {
+  const angle = 2 * Math.PI * h;
+  return [Math.cos(angle), Math.sin(angle)];
+}
 
-  get(x, y) {
-      if (this.memory.hasOwnProperty([x,y])) 
-        return this.memory[[x,y]];
-      let xf = Math.floor(x);
-      let yf = Math.floor(y);
-      //interpolate
-      let tl = this.dot_prod_grid(x, y, xf,   yf);
-      let tr = this.dot_prod_grid(x, y, xf+1, yf);
-      let bl = this.dot_prod_grid(x, y, xf,   yf+1);
-      let br = this.dot_prod_grid(x, y, xf+1, yf+1);
-      let xt = this.interp(x-xf, tl, tr);
-      let xb = this.interp(x-xf, bl, br);
-      let v = this.interp(y-yf, xt, xb);
-      this.memory[[x,y]] = v;
-      return v;
-  }
+export function perlin([x, y]) {
+  const i = floorVec2([x, y]);
+  const f = fractVec2([x, y]);
+
+  const u = [fade(f[0]), fade(f[1])];
+
+  const h00 = hash([i[0] + 0, i[1] + 0]);
+  const h10 = hash([i[0] + 1, i[1] + 0]);
+  const h01 = hash([i[0] + 0, i[1] + 1]);
+  const h11 = hash([i[0] + 1, i[1] + 1]);
+
+  const g00 = grad2(h00);
+  const g10 = grad2(h10);
+  const g01 = grad2(h01);
+  const g11 = grad2(h11);
+
+  const n00 = dot2(g00, [f[0] - 0, f[1] - 0]);
+  const n10 = dot2(g10, [f[0] - 1, f[1] - 0]);
+  const n01 = dot2(g01, [f[0] - 0, f[1] - 1]);
+  const n11 = dot2(g11, [f[0] - 1, f[1] - 1]);
+
+  const nx0 = mix(n00, n10, u[0]);
+  const nx1 = mix(n01, n11, u[0]);
+  const nxy = mix(nx0, nx1, u[1]);
+
+  return nxy;
 }

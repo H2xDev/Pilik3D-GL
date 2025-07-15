@@ -1,43 +1,85 @@
 import { Camera3D } from './camera3d.js';
+import { Color } from './color.js';
+import { DirectionalLight } from './directionalLight.js';
 import { ShaderMaterial, vertex, fragment } from './shaderMaterial.js';
+import { Vec3 } from './vec3.js';
+import { Fog } from './fog.js';
+import { BASE_VERTEX_SHADER, BASE_FRAGMENT_SHADER } from './shaders/base.js';
 
-const vs = vertex`
-precision mediump float;
+/**
+  * Defines a spatial material with customizable vertex and fragment shaders.
+  */
+export const defineSpatialMaterial = () => ({
+  v: BASE_VERTEX_SHADER,
+  f: BASE_FRAGMENT_SHADER,
 
-in vec4 VERTEX;
-in vec3 NORMAL;
+  /**
+   * @param {string} glsl - The GLSL vertex shader code to inject.
+   * @returns {typeof this} Returns the shader material instance for chaining.
+   */
+  vertex(glsl) {
+    if (!glsl) return this;
+    this.v = this.v.replace('void vertex() {}', glsl);
 
-uniform mat4 MODEL_MATRIX;
-uniform mat4 PROJECTION;
-uniform mat4 INV_CAMERA;
+    // Don't allow chaining after this method
+    delete this.vertex;
+    return this;
+  },
 
-void main() {
-  gl_Position = PROJECTION * INV_CAMERA * MODEL_MATRIX * VERTEX;
-}
-`
+  /**
+   * @param {string} glsl - The GLSL fragment shader code to inject.
+   * @returns {typeof this} Returns the shader material instance for chaining.
+   */
+  fragment(glsl) {
+    if (!glsl) return this;
+    this.f = this.f.replace('void fragment(inout vec3 color) {}', glsl);
+    // Don't allow chaining after this method
+    delete this.fragment;
+    return this;
+  },
 
-const fs = fragment`
-precision mediump float;
+  compile() {
+    return class extends ShaderMaterial(vertex(this.v), fragment(this.f)) {
+      params = {
+        albedo_color: Color.WHITE,
+        specular: false,
+        specular_power: 32.0,
+      }
 
-out vec4 outColor;
+      /**
+        * @param {Partial<typeof this.params>} params - Material parameters
+        */
+      constructor(params = {}) {
+        super();
+        Object.assign(this.params, params);
+      }
 
-void main() {
-  outColor = vec4(1.0, 0.0, 0.0, 1.0);
-}
-`
+      applyUniforms() {
+        const { current: camera } = Camera3D;
+        const { current: sun } = DirectionalLight;
+        const { current: fog } = Fog;
 
+        if (!camera) {
+          console.warn("No active camera found. Skipping uniform application.");
+          return;
+        }
 
-export class BaseMaterial extends ShaderMaterial(vs, fs) {
-  applyUniforms() {
-    const { current: camera } = Camera3D;
-    if (!camera) {
-      console.warn("No active camera found. Skipping uniform application.");
-      return;
+        this.setParameter('INV_CAMERA', camera.globalTransform.inverse.toMat4());
+        this.setParameter('PROJECTION', camera.projectionMatrix);
+
+        // Directional light parameters
+        this.setParameter('SUN_COLOR', sun ? sun.color : Color.WHITE);
+        this.setParameter('SUN_DIRECTION', sun ? sun.transform.basis.forward : Vec3.DOWN);
+        this.setParameter('SUN_AMBIENT', sun ? sun.ambient : Color.BLACK);
+
+        // Set fog parameters
+        this.setParameter('FOG_COLOR', fog ? fog.color : Color.WHITE);
+        this.setParameter('FOG_DENSITY', fog ? fog.density : 0.0);
+
+        super.applyUniforms();
+      }
     }
-
-    this.setParameter('INV_CAMERA', camera.globalTransform.inverse.toMat4());
-    this.setParameter('PROJECTION', camera.projectionMatrix);
-
-    super.applyUniforms();
   }
-}
+})
+
+export const BaseMaterial = defineSpatialMaterial().compile();

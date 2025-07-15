@@ -16,60 +16,54 @@ export class BoxGeometry extends Geometry {
     const h = height / 2;
     const d = depth / 2;
 
-    const faceNormals = [
-      new Vec3(0, 0, -1), // front
-      new Vec3(0, 0, 1),  // back
-      new Vec3(0, -1, 0), // bottom
-      new Vec3(0, 1, 0),  // top
-      new Vec3(-1, 0, 0), // left
-      new Vec3(1, 0, 0)   // right
+    // Вершины (24 уникальных для корректных нормалей и UV/цветов)
+    this.vertices = [
+      // Front face
+      new Vec3(-w, -h,  d), new Vec3( w, -h,  d), new Vec3( w,  h,  d), new Vec3(-w,  h,  d),
+      // Back face
+      new Vec3( w, -h, -d), new Vec3(-w, -h, -d), new Vec3(-w,  h, -d), new Vec3( w,  h, -d),
+      // Top face
+      new Vec3(-w,  h,  d), new Vec3( w,  h,  d), new Vec3( w,  h, -d), new Vec3(-w,  h, -d),
+      // Bottom face
+      new Vec3(-w, -h, -d), new Vec3( w, -h, -d), new Vec3( w, -h,  d), new Vec3(-w, -h,  d),
+      // Right face
+      new Vec3( w, -h,  d), new Vec3( w, -h, -d), new Vec3( w,  h, -d), new Vec3( w,  h,  d),
+      // Left face
+      new Vec3(-w, -h, -d), new Vec3(-w, -h,  d), new Vec3(-w,  h,  d), new Vec3(-w,  h, -d),
     ];
 
-    const faceTriangles = [
-      // front
-      [ new Vec3(-w, -h, -d), new Vec3(w, -h, -d), new Vec3(w, h, -d) ],
-      [ new Vec3(-w, -h, -d), new Vec3(w, h, -d), new Vec3(-w, h, -d) ],
-
-      // back
-      [ new Vec3(w, -h, d), new Vec3(-w, -h, d), new Vec3(-w, h, d) ],
-      [ new Vec3(w, -h, d), new Vec3(-w, h, d), new Vec3(w, h, d) ],
-
-      // bottom
-      [ new Vec3(-w, -h, d), new Vec3(w, -h, d), new Vec3(w, -h, -d) ],
-      [ new Vec3(-w, -h, d), new Vec3(w, -h, -d), new Vec3(-w, -h, -d) ],
-
-      // top
-      [ new Vec3(-w, h, -d), new Vec3(w, h, -d), new Vec3(w, h, d) ],
-      [ new Vec3(-w, h, -d), new Vec3(w, h, d), new Vec3(-w, h, d) ],
-
-      // left
-      [ new Vec3(-w, -h, d), new Vec3(-w, -h, -d), new Vec3(-w, h, -d) ],
-      [ new Vec3(-w, -h, d), new Vec3(-w, h, -d), new Vec3(-w, h, d) ],
-
-      // right
-      [ new Vec3(w, -h, -d), new Vec3(w, -h, d), new Vec3(w, h, d) ],
-      [ new Vec3(w, -h, -d), new Vec3(w, h, d), new Vec3(w, h, -d) ]
+    // Нормали
+    this.normals = [
+      // Front
+      ...Array(4).fill(new Vec3(0, 0, 1)),
+      // Back
+      ...Array(4).fill(new Vec3(0, 0, -1)),
+      // Top
+      ...Array(4).fill(new Vec3(0, 1, 0)),
+      // Bottom
+      ...Array(4).fill(new Vec3(0, -1, 0)),
+      // Right
+      ...Array(4).fill(new Vec3(1, 0, 0)),
+      // Left
+      ...Array(4).fill(new Vec3(-1, 0, 0)),
     ];
 
-    const useColors = [];
+    // Индексы
+    this.indices = [
+      // Front
+      0, 1, 2,   0, 2, 3,
+      // Back
+      4, 5, 6,   4, 6, 7,
+      // Top
+      8, 9,10,   8,10,11,
+      // Bottom
+     12,13,14,  12,14,15,
+      // Right
+     16,17,18,  16,18,19,
+      // Left
+     20,21,22,  20,22,23,
+    ];
 
-    if (Array.isArray(color)) {
-      if (color.length !== 12) {
-        throw new Error(`BoxGeometry expects 12 colors, got ${color.length}`);
-      }
-      useColors.push(...color);
-    } else {
-      for (let i = 0; i < 12; i++) useColors.push(color);
-    }
-
-    for (let i = 0; i < 12; i++) {
-      const tri = faceTriangles[i];
-      const normal = faceNormals[Math.floor(i / 2)];
-      const baseIndex = i * 3;
-
-      this.vertices.push(...tri);
-      this.normals.push(normal, normal, normal);
-      this.indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
-    }
+    this.update();
   }
 }

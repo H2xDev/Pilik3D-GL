@@ -2,51 +2,80 @@ import { Vec3 } from '../vec3.js';
 import { Geometry } from '../geometry.js';
 
 export class CylinderGeometry extends Geometry {
-  constructor(radius = 1, height = 2, radialSegments = 8, offset = Vec3.ZERO) {
+  /**
+   * @param {number} radius
+   * @param {number} height
+   * @param {number} segments
+   */
+  constructor(radius = 1, height = 1, segments = 32) {
     super();
-    this.radius = radius;
-    this.height = height;
-    this.radialSegments = radialSegments;
 
-    for (let i = 0; i <= radialSegments; i++) {
-      const theta = (i / radialSegments) * Math.PI * 2;
-      const x = radius * Math.cos(theta);
-      const z = radius * Math.sin(theta);
-      this.vertices.push(new Vec3(x, height / 2, z).sub(offset));
-      this.vertices.push(new Vec3(x, -height / 2, z).sub(offset));
-      this.normals.push(new Vec3(x, 0, z).normalized);
-      this.normals.push(new Vec3(x, 0, z).normalized);
+    const h = height / 2;
+    const angleStep = (Math.PI * 2) / segments;
+
+    this.vertices = [];
+    this.normals = [];
+    this.indices = [];
+
+    const topCenterIndex = 0;
+    const bottomCenterIndex = 1;
+
+    this.vertices.push(new Vec3(0, h, 0));
+    this.normals.push(new Vec3(0, 1, 0));
+
+    this.vertices.push(new Vec3(0, -h, 0));
+    this.normals.push(new Vec3(0, -1, 0));
+
+    const topRim = [];
+    const bottomRim = [];
+    const sideTop = [];
+    const sideBottom = [];
+
+    for (let i = 0; i < segments; i++) {
+      const angle = i * angleStep;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const normal = new Vec3(x, 0, z).normalized;
+
+      topRim.push(this.vertices.length);
+      this.vertices.push(new Vec3(x, h, z));
+      this.normals.push(new Vec3(0, 1, 0));
+
+      bottomRim.push(this.vertices.length);
+      this.vertices.push(new Vec3(x, -h, z));
+      this.normals.push(new Vec3(0, -1, 0));
+
+      sideTop.push(this.vertices.length);
+      this.vertices.push(new Vec3(x, h, z));
+      this.normals.push(normal);
+
+      sideBottom.push(this.vertices.length);
+      this.vertices.push(new Vec3(x, -h, z));
+      this.normals.push(normal);
     }
 
-    // Create indices for the side faces
-    for (let i = 0; i < radialSegments; i++) {
-      const topIndex = i * 2;
-      const bottomIndex = topIndex + 1;
-      const nextTopIndex = ((i + 1) % radialSegments) * 2;
-      const nextBottomIndex = nextTopIndex + 1;
-
-      // Side face
-      this.indices.push(topIndex, bottomIndex, nextTopIndex);
-      this.indices.push(nextTopIndex, bottomIndex, nextBottomIndex);
+    for (let i = 0; i < segments; i++) {
+      const curr = topRim[i];
+      const next = topRim[(i + 1) % segments];
+      this.indices.push(topCenterIndex, next, curr);
     }
 
-    const topCenterIndex = this.vertices.length; // Index for the top center vertex
-    const bottomCenterIndex = topCenterIndex + 1; // Index for the bottom center vertex
-
-    // Close top and bottom faces
-    for (let i = 0; i < this.vertices.length - 2; i += 2) {
-      const topIndex = i;
-      const nextTopIndex = (i + 2) % (this.vertices.length);
-      const bottomIndex = i + 1;
-      const nextBottomIndex = (i + 3) % (this.vertices.length);
-
-      this.indices.push(topCenterIndex, topIndex, nextTopIndex);
-      this.indices.push(bottomCenterIndex, bottomIndex, nextBottomIndex);
+    for (let i = 0; i < segments; i++) {
+      const curr = bottomRim[i];
+      const next = bottomRim[(i + 1) % segments];
+      this.indices.push(bottomCenterIndex, curr, next);
     }
 
-    this.vertices.push(new Vec3(0, height / 2, 0).sub(offset)); // Top center vertex
-    this.vertices.push(new Vec3(0, -height / 2, 0).sub(offset)); // Bottom center vertex
-    this.normals.push(new Vec3(0, 1, 0)); // Normal for top center vertex
-    this.normals.push(new Vec3(0, -1, 0)); // Normal for bottom center vertex
+    for (let i = 0; i < segments; i++) {
+      const top1 = sideTop[i];
+      const top2 = sideTop[(i + 1) % segments];
+      const bottom1 = sideBottom[i];
+      const bottom2 = sideBottom[(i + 1) % segments];
+
+      // Первый треугольник
+      this.indices.push(top1, top2, bottom1);
+      // Второй треугольник
+      this.indices.push(top2, bottom2, bottom1);
+    }
   }
 }

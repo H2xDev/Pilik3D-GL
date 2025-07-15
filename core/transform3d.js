@@ -20,11 +20,22 @@ export class Transform3D {
     return new Transform3D(inverseBasis, inversePosition);
   }
 
+  get isDeterminantZero() {
+    const { x, y, z } = this.basis;
+    return (
+      x.x * (y.y * z.z - y.z * z.y) -
+      x.y * (y.x * z.z - y.z * z.x) +
+      x.z * (y.x * z.y - y.y * z.x) === 0
+    );
+  }
+
   toMat4() {
+    const b = this.basis.scaled(this.scale);
+
     return [
-      ...this.basis.x.toArray(), 0.0,
-      ...this.basis.y.toArray(), 0.0,
-      ...this.basis.z.toArray(), 0.0,
+      ...b.x.toArray(), 0.0,
+      ...b.y.toArray(), 0.0,
+      ...b.z.toArray(), 0.0,
       ...this.position.toArray(), 1.0,
     ];
   }

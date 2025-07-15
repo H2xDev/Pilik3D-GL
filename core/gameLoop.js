@@ -27,18 +27,21 @@ export class GameLoop {
 		if (!this.running) return;
 		assert(this.scene, "Scene is not set for rendering");
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
 		this.scene._process(DELTA_TIME);
 		requestAnimationFrame(this.renderLoop.bind(this));
 	}
 
-	changeScene(scene) {
+  /**
+    * Changes the current scene to the specified one.
+    * @param { Scene } scene
+    */
+	async changeScene(scene) {
 		if (this.scene) this.scene.exit();
 		this.scene = scene;
-		this.scene.begin();
+		await this.scene.begin();
 
 		return this;
 	}
@@ -46,6 +49,8 @@ export class GameLoop {
 	setup(options = {}) {
 		Object.assign(canvas, options);
 		Object.assign(canvas.style, options.style || {});
+    gl.enable(gl.DEPTH_TEST);
+    gl.frontFace(gl.CW);
 		return this;
 	}
 

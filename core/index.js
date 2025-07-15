@@ -22,3 +22,4 @@ export * from './sound.js';
 export * from './camera3d.js';
 export * from './shaderMaterial.js';
 export * from './baseMaterial.js';
+export * from './mesh.js';

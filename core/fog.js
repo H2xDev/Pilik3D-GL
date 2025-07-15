@@ -18,24 +18,4 @@ export class Fog {
     this.type = type;
     this.color = color;
   }
-
-
-  /**
-    * Process a polygon with the fog effect.
-    * @param { import("./camera3d.js").Camera3D } camera in world space
-    * @param { import("./polygon.js").Polygon } polygon in camera space
-    * @param { Color } inColor
-    */
-  processPolygon(camera, polygon, inColor) {
-    if (!this.enabled) return inColor;
-    let fogFactor = Math.min(1.0, polygon.center.length / camera.far);
-
-    if (this.type === FogType.EXPONENTIAL) {
-      fogFactor = 1.0 - Math.exp(-this.density * fogFactor);
-    }
-
-    if (fogFactor <= 0) return inColor;
-
-    return inColor.mix(this.color, fogFactor);
-  }
 }

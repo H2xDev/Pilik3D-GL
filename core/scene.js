@@ -9,7 +9,10 @@ export class Scene extends GNode {
   geometryNodes = [];
   lightNodes = [];
 
-  /** @virtual */
+  /** 
+    * @virtual 
+    * @returns { Promise<void> | void }
+    */
   begin() {}
 
   /** @virtual */

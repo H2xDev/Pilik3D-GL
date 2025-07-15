@@ -1,13 +1,8 @@
 import { Vec3 } from '../vec3.js';
 import { Color } from '../color.js';
-import { GeometryBase } from './base.js';
+import { Geometry } from '../geometry.js';
 
-export class PlaneGeometry extends GeometryBase {
-
-  /**
-    * @param { number } sx - Segments in the X direction
-    * @param { number } sy - Segments in the Y direction
-    */
+export class PlaneGeometry extends Geometry {
   constructor(sx, sy, fromCenter = false) {
     super();
 

@@ -1,18 +1,21 @@
-import { Vec3, assert, failed, UUID, gl } from "./index.js";
+import { Vec3, assert, failed, UUID, gl, Color } from "./index.js";
 
 /**
   * @type { WebGLProgram[] }
   */
 export const shaderPrograms = [];
 
-/**
-  * @param { TemplateStringsArray } string - The GLSL fragment shader source code.
-  */
-export const fragment = (string) => {
+const compileShader = (string, type) => {
   const source = `#version 300 es\n` + string;
-  const shader = gl.createShader(gl.FRAGMENT_SHADER);
+  const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
+
+  const log = gl.getShaderInfoLog(shader);
+  if (log) {
+    console.log(log)
+    console.log(source.split('\n').map((line, index) => `${index + 1}: ${line}`).join('\n'));
+  }
 
   if (failed(gl.getShaderParameter(shader, gl.COMPILE_STATUS), gl.deleteShader.bind(gl, shader))) return null;
 
@@ -20,17 +23,24 @@ export const fragment = (string) => {
 }
 
 /**
-  * @param { TemplateStringsArray } string - The GLSL fragment shader source code.
+  * @param { TemplateStringsArray | string } string - The GLSL fragment shader source code.
+  */
+export const fragment = (string) => {
+  return compileShader(string, gl.FRAGMENT_SHADER);
+}
+
+/**
+  * @param { TemplateStringsArray | string } string - The GLSL fragment shader source code.
   */
 export const vertex = (string) => {
-  const source = `#version 300 es\n` + string;
-  const shader = gl.createShader(gl.VERTEX_SHADER);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
+  return compileShader(string, gl.VERTEX_SHADER);
+}
 
-  if (failed(gl.getShaderParameter(shader, gl.COMPILE_STATUS), gl.deleteShader.bind(gl, shader))) return null;
-
-  return shader;
+/**
+  * @param { string } source - The GLSL shader source code.
+  */
+export const custom = (source) => {
+  ``
 }
 
 /**
@@ -133,7 +143,7 @@ export const ShaderMaterial = (vertexShader, fragmentShader) => {
 
     /**
       * @param { string } name
-      * @param { number | Vec3 | number[] } value
+      * @param { number | Vec3 | Color | number[] } value
       */
     setParameter(name, value) {
       if (!(name in uniforms)) {
@@ -142,22 +152,29 @@ export const ShaderMaterial = (vertexShader, fragmentShader) => {
 
       const location = uniforms[name];
 
-      if (value instanceof Vec3) {
-        gl.uniform3fv(location, new Float32Array(value.toArray()));
-      } else if (typeof value === "number") {
+      if (typeof value === "boolean") {
+        gl.uniform1i(location, value ? 1 : 0);
+        return;
+      }
+
+      if (typeof value === "number") {
         gl.uniform1f(location, value);
-      } else if (Array.isArray(value)) {
+        return;
+      }
+
+      value = value instanceof Vec3  || value instanceof Color
+        ? value.toArray() : value;
+
+      if (Array.isArray(value)) {
         if (value.length === 16) {
           gl.uniformMatrix4fv(location, false, new Float32Array(value));
         } else if (value.length === 2) {
           gl.uniform2fv(location, value);
+        } else if (value.length === 3) {
+          gl.uniform3fv(location, value);
         } else if (value.length === 4) {
           gl.uniform4fv(location, value);
-        } else {
-          console.warn(`Unsupported uniform type for ${name}:`, value);
         }
-      } else {
-        console.warn(`Unsupported uniform type for ${name}:`, value);
       }
     }
 
@@ -166,8 +183,6 @@ export const ShaderMaterial = (vertexShader, fragmentShader) => {
         const value = this.params[name];
         if (name in uniforms) {
           this.setParameter(name, value);
-        } else {
-          console.warn(`Uniform ${name} not found in material ${this.id}`);
         }
       }
     }

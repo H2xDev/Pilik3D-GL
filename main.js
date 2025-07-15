@@ -3,8 +3,8 @@ import { Game } from '/game/index.js';
 
 new GameLoop()
   .setup({
-    width: 800,
-    height: 600,
+    width: window.innerWidth,
+    height: window.innerHeight,
     style: {
       width: '100%',
       height: '100%',
@@ -14,5 +14,4 @@ new GameLoop()
     }
   })
   .mountTo(document.body)
-  .changeScene(Game)
-  .begin();
+  .changeScene(Game).then(loop => loop.begin());

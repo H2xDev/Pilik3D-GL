@@ -34,8 +34,8 @@ export class Geometry {
 
 
   update() {
-    this.updateIndexBuffer();
     this.updateVertexBuffer();
     this.updateNormalBuffer();
+    this.updateIndexBuffer();
   }
 }

@@ -37,6 +37,18 @@ export class Color {
     return new Color(1, 0.5, 0);
   }
 
+  static get GREY() {
+    return new Color(0.5, 0.5, 0.5);
+  }
+
+  static get DARK_GREY() {
+    return new Color(0.2, 0.2, 0.2);
+  }
+
+  static get LIGHT_GREY() {
+    return new Color(0.8, 0.8, 0.8);
+  }
+
   r = 0;
   g = 0;
   b = 0;

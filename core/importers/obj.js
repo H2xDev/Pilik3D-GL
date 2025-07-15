@@ -1,4 +1,3 @@
-import { Color } from "../color.js";
 import { Vec3 } from "../vec3.js";
 import { Geometry } from "../geometry.js";
 
@@ -8,6 +7,7 @@ export class OBJImporter extends Geometry {
     */
   constructor(data) {
     super();
+    const rawNormals = [];
     data.split('\n').forEach(line => {
       const [marker, ...args] = line.trim().split(/\s+/);
 
@@ -19,7 +19,7 @@ export class OBJImporter extends Geometry {
 
         case 'vn': // Vertex normal
           const normal = new Vec3(...args.map(Number));
-          this.normals.push(normal);
+          rawNormals.push(normal);
           break;
 
         case 'f': // Face
@@ -32,14 +32,15 @@ export class OBJImporter extends Geometry {
             // Split quad into two triangles
             this.indices.push(vindices[0], vindices[1], vindices[2]);
             this.indices.push(vindices[0], vindices[2], vindices[3]);
-            this.normals[vindices[0]] = this.normals[nindices[0]];
-            this.normals[vindices[1]] = this.normals[nindices[1]];
-            this.normals[vindices[2]] = this.normals[nindices[2]];
+            this.normals[vindices[0]] = rawNormals[nindices[0]];
+            this.normals[vindices[1]] = rawNormals[nindices[1]];
+            this.normals[vindices[2]] = rawNormals[nindices[2]];
+            this.normals[vindices[3]] = rawNormals[nindices[3]];
           } else {
             this.indices.push(...vindices);
-            this.normals[vindices[0]] = this.normals[nindices[0]];
-            this.normals[vindices[1]] = this.normals[nindices[1]];
-            this.normals[vindices[2]] = this.normals[nindices[2]];
+            this.normals[vindices[0]] = rawNormals[nindices[0]];
+            this.normals[vindices[1]] = rawNormals[nindices[1]];
+            this.normals[vindices[2]] = rawNormals[nindices[2]];
           }
           break;
 
