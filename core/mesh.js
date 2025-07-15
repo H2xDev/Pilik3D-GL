@@ -6,6 +6,7 @@ export class Mesh extends GNode3D {
   geometry_ = null;
   material = null;
   backfaceCulling = true;
+  smoothShading = true;
 
   vao = gl.createVertexArray();
 

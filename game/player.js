@@ -11,6 +11,9 @@ const CAR_MATERIAL = new BaseMaterial({
 
 const BACK_TIRE_GEOMETRY = new CylinderGeometry(0.4, 2.5, 8);
 const FORWARD_TIRE_GEOMETRY = new CylinderGeometry(0.4, 0.4, 8);
+const TIRE_MATERIAL = new BaseMaterial({
+  albedo_color: Color.BLACK,
+})
 
 export class Player extends GNode3D {
   velocity = Vec3.ZERO;
@@ -82,9 +85,9 @@ export class Player extends GNode3D {
     this.model.scale = new Vec3(0.125, 0.125, 0.125);
     this.model.position.y = 0.1;
 
-    this.backTires = new Mesh(BACK_TIRE_GEOMETRY);
-    this.forwardTire1 = new Mesh(FORWARD_TIRE_GEOMETRY);
-    this.forwardTire2 = new Mesh(FORWARD_TIRE_GEOMETRY);
+    this.backTires = new Mesh(BACK_TIRE_GEOMETRY, TIRE_MATERIAL);
+    this.forwardTire1 = new Mesh(FORWARD_TIRE_GEOMETRY, TIRE_MATERIAL);
+    this.forwardTire2 = new Mesh(FORWARD_TIRE_GEOMETRY, TIRE_MATERIAL);
 
     this.backTires.position = new Vec3(0.0, -0.05, 0.15);
     this.backTires.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT);
@@ -95,11 +98,6 @@ export class Player extends GNode3D {
 
     this.camera.position = this.targetCameraPosition;
     this.camera.basis = this.transform.basis;
-
-    this.model.polygonProgram = (polygon, camera3d) => {
-      polygon.color = Color.GREEN;
-      return polygon;
-    }
 
     window.addEventListener('mousemove', this.processMouse.bind(this));
     this.input.once(Input.Events.ANY_PRESSED, (keyCode) => {
@@ -154,8 +152,6 @@ export class Player extends GNode3D {
       .slerp(targetBasis, 4 * dt)
       .rotated(this.basis.up, this.turnVelocity * -dt)
       .multiply(Basis.IDENTITY.rotated(Vec3.FORWARD, this.turnVelocity * 0.5 * dt));
-
-    this.camera.fov = 50 + this.velocity.length * 5;
   }
 
   processMovement(dt) {
@@ -208,26 +204,22 @@ export class Player extends GNode3D {
     * Processing 4 points around the player to determine normal vector and ground height.
     */
   processGravity(dt) {
-    const p1 = this.model.basis.forward.mul(0.3).add(this.model.basis.left.mul(0.125)).add(this.position);
-    const p2 = this.model.basis.forward.mul(0.3).add(this.model.basis.right.mul(0.125)).add(this.position);
-    const p3 = this.model.basis.forward.mul(-0.3).add(this.model.basis.left.mul(0.125)).add(this.position);
-    const p4 = this.model.basis.forward.mul(-0.3).add(this.model.basis.right.mul(0.125)).add(this.position);
+    const { forward: modelForward, left: modelLeft, right: modelRight } = this.model.basis;
+    const { terrain } = this.scene;
 
-    const h1 = p1.mul(Vec3.XZ).add(Vec3.UP.mul(this.scene.terrain.getHeightAt(p1.x, p1.z)));
-    const h2 = p2.mul(Vec3.XZ).add(Vec3.UP.mul(this.scene.terrain.getHeightAt(p2.x, p2.z)));
-    const h3 = p3.mul(Vec3.XZ).add(Vec3.UP.mul(this.scene.terrain.getHeightAt(p3.x, p3.z)));
-    const h4 = p4.mul(Vec3.XZ).add(Vec3.UP.mul(this.scene.terrain.getHeightAt(p4.x, p4.z)));
+    const p1 = modelForward.mul(0.3).add(modelLeft.mul(0.125)).add(this.position);
+    const p2 = modelForward.mul(0.3).add(modelRight.mul(0.125)).add(this.position);
+    const p3 = modelForward.mul(-0.3).add(modelLeft.mul(0.125)).add(this.position);
+    const p4 = modelForward.mul(-0.3).add(modelRight.mul(0.125)).add(this.position);
 
-    if (this.debug) {
-      // this.camera.drawLine(h1, h2,Color.RED, true);
-      // this.camera.drawLine(h3, h4,Color.RED, true);
-      // this.camera.drawLine(h1, h3, Color.RED, true);
-      // this.camera.drawLine(h2, h4, Color.RED, true);
-    }
+    const h1 = p1.mul(Vec3.XZ).add(Vec3.UP.mul(terrain.getHeightAt(p1.x, p1.z)));
+    const h2 = p2.mul(Vec3.XZ).add(Vec3.UP.mul(terrain.getHeightAt(p2.x, p2.z)));
+    const h3 = p3.mul(Vec3.XZ).add(Vec3.UP.mul(terrain.getHeightAt(p3.x, p3.z)));
+    const h4 = p4.mul(Vec3.XZ).add(Vec3.UP.mul(terrain.getHeightAt(p4.x, p4.z)));
 
     const n1 = getNormal(h1, h2, h3);
     const n2 = getNormal(h2, h4, h3);
-    const targetY = Math.max(h1.y, h2.y, h3.y, h4.y);
+    const targetY = (h1.y + h2.y + h3.y + h4.y) / 4;
     const normal = n1.add(n2).normalized;
     normal.y = Math.abs(normal.y);
 
@@ -237,10 +229,6 @@ export class Player extends GNode3D {
       this.velocity = this.velocity.add(Vec3.UP.mul(-GRAVITY * dt)); // Gravity
     }
 
-    if (this.debug) {
-      // this.camera.drawLine(this.position, this.position.add(normal.mul(0.5)), Color.GREEN, true);
-    }
-
     // NOTE: Align the model's up vector with the terrain normal
     this.model.basis.up = this.isOnGround
       ? normal
@@ -248,6 +236,6 @@ export class Player extends GNode3D {
 
     const targetPos = Math.max(targetY, this.position.y);
     this.position.y -= (this.position.y - targetPos) * dt * 4;
-    this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 10;
+    this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 100;
   }
 }

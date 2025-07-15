@@ -11,7 +11,7 @@ export class Camera3D extends GNode3D {
   static current = null;
 
   fov = 50;
-  far = 100;
+  far = 1000;
   near = 0.1;
 
   constructor() {
