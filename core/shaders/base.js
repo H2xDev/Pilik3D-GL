@@ -13,20 +13,26 @@ export const BASE_VERTEX_SHADER = /* glsl */`
   uniform mat4 PROJECTION;
   uniform mat4 INV_CAMERA;
 
+  uniform bool SHADOW_PASS;
+  uniform mat4 SHADOW_PROJECTION;
+
   void vertex() {}
 
   void main() {
-    mat3 model_basis = mat3(MODEL_MATRIX);
+    if (!SHADOW_PASS) {
+      mat3 model_basis = mat3(MODEL_MATRIX);
   
+      v_normal = normalize(model_basis * NORMAL);
+      v_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+      v_camera_world_position = inverse(INV_CAMERA)[3].xyz;
+      v_camera_forward = INV_CAMERA[2].xyz;
 
-    v_normal = normalize(model_basis * NORMAL);
-    v_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-    v_camera_world_position = inverse(INV_CAMERA)[3].xyz; // Get the camera world position
-    v_camera_forward = INV_CAMERA[2].xyz; // Get the camera forward vector
-
-    vertex();
+      vertex();
   
-    gl_Position = PROJECTION * INV_CAMERA * vec4(v_position, 1.0);
+      gl_Position = PROJECTION * INV_CAMERA * vec4(v_position, 1.0);
+    } else {
+      gl_Position = SHADOW_PROJECTION * inverse(MODEL_MATRIX) * vec4(VERTEX, 1.0);
+    }
   }
 `;
 
@@ -46,6 +52,11 @@ export const BASE_FRAGMENT_SHADER = /* glsl */`
   uniform vec3 SUN_COLOR;
   uniform vec3 SUN_DIRECTION;
   uniform vec3 SUN_AMBIENT;
+
+  // Shadow
+  uniform bool SHADOW_PASS;
+  uniform mat4 SHADOW_PROJECTION;
+  uniform float SHADOW_FAR_PLANE;
   
   // Fog
   uniform vec3 FOG_COLOR;
@@ -63,7 +74,7 @@ export const BASE_FRAGMENT_SHADER = /* glsl */`
   }
 
   void processDirectionalLight(inout vec3 color) {
-    float sun_affection = pow(max(dot(v_normal, -SUN_DIRECTION), 0.0), 2.0);
+    float sun_affection = pow(max(dot(v_normal, -SUN_DIRECTION), 0.0), 1.0);
     vec3 light_color = SUN_COLOR * sun_affection;
 
     color *= SUN_AMBIENT;
@@ -81,17 +92,28 @@ export const BASE_FRAGMENT_SHADER = /* glsl */`
     color += SUN_COLOR * s;
   }
 
+  void processShadow(inout vec3 color) {
+    float far_plane = SHADOW_PROJECTION[3][2];
+    float depth = min(gl_FragCoord.z / SHADOW_FAR_PLANE, 1.0);
+
+    color = vec3(depth);
+  }
+
   // Injected code for additional fragment processing
   void fragment(inout vec3 color) {}
 
   void main() {
     vec3 color = albedo_color.rgb;
 
-    fragment(color);
+    if (!SHADOW_PASS) {
+      fragment(color);
 
-    processDirectionalLight(color);
-    processSpecular(color);
-    processFog(color);
+      processDirectionalLight(color);
+      processSpecular(color);
+      processFog(color);
+    } else {
+      processShadow(color);
+    }
   
     outColor = vec4(color, 1.0);
   }

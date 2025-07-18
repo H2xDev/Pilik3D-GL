@@ -132,6 +132,15 @@ export class Color {
     );
   }
 
+  saturation(factor) {
+    const avg = (this.r + this.g + this.b) / 3;
+    return new Color(
+      avg + (this.r - avg) * factor,
+      avg + (this.g - avg) * factor,
+      avg + (this.b - avg) * factor
+    );
+  }
+
   /** 
    * @param { Color } color 
    * @param { number } t - Interpolation factor (0 to 1).

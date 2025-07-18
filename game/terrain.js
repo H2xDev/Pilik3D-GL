@@ -1,14 +1,15 @@
 import { Mesh, Vec3, Color } from "@core/index.js";
 import { PlaneGeometry } from "../core/importers/plane.js";
-import { TerrainMaterial } from "./shaders/terrain.js";
-import { perlin } from "./perlin.js";
+import { TerrainMaterial } from "./materials/terrain.material.js";
+import { perlin2 } from "./perlin2.js";
 
 const GRID_SIZE = 10;
-const CHUNK_SIZE = 100;
+const CHUNK_SIZE = 254;
 
 export class Terrain extends Mesh {
   constructor() {
     super(new PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE, true), new TerrainMaterial());
+    this.scale = new Vec3(0.33);
   }
 
   /** @type { import("./player.js").Player } */
@@ -18,7 +19,6 @@ export class Terrain extends Mesh {
 
   process(dt) {
     const gridPos = this.player.position.div(GRID_SIZE).round();
-    this.positionHash = gridPos;
     this.position = gridPos.mul(GRID_SIZE);
 
     super.process(dt);
@@ -46,6 +46,8 @@ export class Terrain extends Mesh {
     * @param { number } z - The z coordinate.
     */
   getHeightAt(x, z) {
-    return perlin([x, z])
+    x /= 2;
+    z /= 2;
+    return perlin2([x, z]);
   }
 }

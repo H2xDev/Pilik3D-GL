@@ -24,9 +24,9 @@ export class Player extends GNode3D {
   isOnGround = false;
   turnVelocity = 0;
   turnSpeed = 5;
-  movementSpeed = 10;
+  movementSpeed = 20;
   forwardSpeed = 0;
-  friction = 5;
+  friction = 2;
   debug = false;
   aim = Basis.IDENTITY;
   tireRotation = 0;
@@ -123,10 +123,11 @@ export class Player extends GNode3D {
   }
 
   processSound(dt) {
-    this.engineLoop.volume = Math.max(Math.min(1, this.velocity.length / 10) * 0.5, 0.1);
+    const volume = Math.max(Math.min(1, this.velocity.length / 15) * 0.25, 0.1);
+    this.engineLoop.volume = volume;
 
     const pitch = this.velocity.length % 2;
-    const pitchLap = Math.floor(this.velocity.length / 2);
+    const pitchLap = Math.floor(this.velocity.length / 5);
     this.engineLoop.rate = 0.3 + pitch * 0.2 + pitchLap * 0.3;
 
     this.screetchLoop.volume = Math.min(0.25, this.driftValue / 1);
@@ -178,7 +179,7 @@ export class Player extends GNode3D {
 
     if (this.isOnGround) {
       this.rotationSign = this.velocity.mul(Vec3.XZ).dot(this.model.basis.forward) < 0 ? 1 : -1;
-      this.turnVelocity += (x * this.forwardSpeed) * this.velocity.length * -dt;
+      this.turnVelocity += (x * this.forwardSpeed) * 3.0 * -dt;
       this.turnVelocity -= this.turnVelocity * dt;
 
       const acceleration = getAcceleration(this.movementSpeed, this.friction, dt);

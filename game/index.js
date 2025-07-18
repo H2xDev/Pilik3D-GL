@@ -1,24 +1,25 @@
-import { Scene, Camera3D, Fog, Vec3, Color, DirectionalLight } from '@core/index.js';
+import { Scene, Camera3D, Fog, Vec3, Color, DirectionalLight, FogType, GSound } from '@core/index.js';
 import { Terrain } from './terrain.js';
 import { Player } from './player.js';
 
-const AMBIENT_COLOR = Color.WHITE.sub(Color.ORANGE.mul(0.25));
+const AMBIENT_COLOR = Color.ORANGE.mix(Color.WHITE, 0.5).mix(Color.BLUE.mul(1.5), 0.2);
 const SUN_DIRECTION = Vec3.DOWN.add(Vec3.LEFT).normalized;
 
 export const Game = new class extends Scene {
-  /** @type { Camera3D } */
-  camera = this.addChild(new Camera3D());
-  sun = this.addChild(new DirectionalLight(Color.WHITE, SUN_DIRECTION, AMBIENT_COLOR));
-  terrain = this.addChild(new Terrain());
-
-  fog = Object.assign(new Fog(), {
-    color: this.sun.ambient,
-    density: 0.05,
-  })
-  player = this.addChild(new Player());
+  camera    = this.addChild(new Camera3D());
+  sun       = this.addChild(new DirectionalLight(Color.ORANGE, SUN_DIRECTION, AMBIENT_COLOR));
+  terrain   = this.addChild(new Terrain());
+  player    = this.addChild(new Player());
+  wind = new GSound('/game/assets/wind.ogg', { loop: true, volume: 1.0 });
+  fog = new Fog(FogType.EXPONENTIAL, this.sun.ambient, 0.025);
 
   begin() {
-    // this.camera2.position = new Vec3(0, 50, 0);
-    // this.camera2.basis.rotate(Vec3.LEFT, -Math.PI / 2);
+    window.addEventListener('keydown', (e) => {
+      this.wind.play();
+    }, { once: true });
+  }
+
+  process(dt) {
+    this.wind.volume = 0.5 + Math.sin(this.time * 0.5) * 0.25;
   }
 }

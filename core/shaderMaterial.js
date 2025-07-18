@@ -143,7 +143,7 @@ export const ShaderMaterial = (vertexShader, fragmentShader) => {
 
     /**
       * @param { string } name
-      * @param { number | Vec3 | Color | number[] } value
+      * @param { number | Vec3 | Color | number[] | boolean } value
       */
     setParameter(name, value) {
       if (!(name in uniforms)) {

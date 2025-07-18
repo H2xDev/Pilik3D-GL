@@ -1,13 +1,9 @@
 import { GNode } from "./gnode.js";
-import { PointLight } from "./light.js";
 
 export class Scene extends GNode {
   /** @type { import('./camera3d.js').Camera3D | null } */
   camera = null;
   time = 0;
-
-  geometryNodes = [];
-  lightNodes = [];
 
   /** 
     * @virtual 

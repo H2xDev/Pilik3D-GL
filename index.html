@@ -32,6 +32,55 @@ body {
   overflow: hidden;
   margin: 0;
 }
+
+.input-controls-wrapper {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 5vw;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.input-controls {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+}
+
+.input-button {
+  width: 10vw;
+  height: 10vw;
+  background-color: white;
+  z-index: 1000;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  opacity: 0.6;
+  pointer-events: all;
+}
+
+.i-moveForward {
+  position: absolute;
+  right: 0;
+  bottom: 10vw;
+}
+
+.i-moveBack {
+  position: absolute;
+  right: 0;
+  bottom: 0vw;
+}
+
+.i-turnRight {
+  position: absolute;
+  margin-left: 15vw;
+}
+
 </style>
 </body>
 </html>

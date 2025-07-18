@@ -12,15 +12,13 @@ export class PlaneGeometry extends Geometry {
     // Generate vertices
     for (let y = 0; y <= sy; y++) {
       for (let x = 0; x <= sx; x++) {
-        const v = new Vec3(
-          (x / sx) * sx,
-          0,
-          (y / sy) * sy,
-        )
+        const v = new Vec3(x, 0, y)
+
         if (fromCenter) {
           v.x -= halfWidth;
           v.z -= halfHeight;
         }
+
         this.vertices.push(v);
       }
     }

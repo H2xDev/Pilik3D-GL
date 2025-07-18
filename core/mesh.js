@@ -72,7 +72,6 @@ export class Mesh extends GNode3D {
   process(dt) {
     gl.useProgram(this.material.program);
 
-    this.material.applyUniforms();
     this.material.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
 
     if (this.backfaceCulling) {
@@ -81,14 +80,15 @@ export class Mesh extends GNode3D {
     }
 
     gl.bindVertexArray(this.vao);
-    if (!this.wireframe) {
-      gl.drawElements(gl.TRIANGLES, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
-    } else {
-      gl.drawElements(gl.LINES, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
-    }
+
+    // this.material.shadowPassUniforms();
+    // gl.drawElements(gl.TRIANGLES, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
+
+    this.material.applyUniforms();
+    const renderType = this.wireframe ? gl.LINES : gl.TRIANGLES;
+    gl.drawElements(renderType, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
 
     gl.bindVertexArray(null);
-
     gl.useProgram(null);
   }
 }

@@ -74,7 +74,7 @@ export class Vec3 {
     return new Vec3(0, this.y, this.z);
   }
 
-  constructor(x = 0, y = 0, z = 0) {
+  constructor(x = 0, y = x, z = x) {
     Object.assign(this, { x, y, z });
   }
 

@@ -6,16 +6,22 @@ export const FogType = {
 };
 
 export class Fog {
-  static current = new Fog();
+  static current = null;
+
   type = FogType.LINEAR;
   color = Color.WHITE;
   density = 2.0; // For exponential fog, default density
   enabled = true; // Whether fog is enabled
 
-  constructor(type = FogType.LINEAR, color = Color.WHITE) {
+  constructor(type = FogType.LINEAR, color = Color.WHITE, density = 2.0) {
     if (Fog.current) return Fog.current;
 
-    this.type = type;
-    this.color = color;
+    Object.assign(this, {
+      type,
+      color,
+      density,
+    });
+
+    Fog.current = this;
   }
 }
