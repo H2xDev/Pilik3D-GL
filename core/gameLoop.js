@@ -1,4 +1,6 @@
+import { DirectionalLight } from "./directionalLight.js";
 import { canvas, gl } from "./gl.js";
+import { Mesh } from "./mesh.js";
 import { Scene } from "./scene.js";
 import { assert } from "./utils.js";
 
@@ -27,10 +29,10 @@ export class GameLoop {
 		if (!this.running) return;
 		assert(this.scene, "Scene is not set for rendering");
 
-    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
 		this.scene._process(DELTA_TIME);
+
 		requestAnimationFrame(this.renderLoop.bind(this));
 	}
 

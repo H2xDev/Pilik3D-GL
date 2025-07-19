@@ -3,7 +3,7 @@ import { PlaneGeometry } from "../core/importers/plane.js";
 import { SEED, TerrainGenerator } from "./terrainGenerator.js";
 
 const RENDER_DISTANCE = window.innerWidth < 1340 ? 3 : 10;
-const SCALE = window.innerWidth < 1340 ? 1.0 : 0.10;
+const SCALE = window.innerWidth < 1340 ? 1.0 : 0.25;
 
 export class Terrain extends GNode3D {
   mesh = null;
@@ -16,7 +16,7 @@ export class Terrain extends GNode3D {
   options = {
     renderDistance: RENDER_DISTANCE,
     chunkSize: 254,
-    gridSize: 10,
+    gridSize: 100,
     scale: SCALE,
   }
 
@@ -31,9 +31,10 @@ export class Terrain extends GNode3D {
     this.terrainGenerator = new TerrainGenerator(terrainOptions);
 
     const geometry = new PlaneGeometry(this.options.chunkSize, this.options.chunkSize);
+    const vertexShader = ShadersManager.import('/game/shaders/terrain.vert.glsl');
+    const fragmentShader = ShadersManager.import('/game/shaders/terrain.frag.glsl');
 
-    const material = new (defineSpatialMaterial()
-      .vertex(ShadersManager.import('/game/shaders/terrain.vert.glsl'), {
+    const material = new (defineSpatialMaterial(vertexShader, fragmentShader, {
         FIRST_WAVE_ITERATIONS: this.terrainGenerator.options.firstWaveIterations,
         FIRST_WAVE_POWER: this.terrainGenerator.options.firstWavePower,
         FIRST_WAVE_MULTIPLIER: this.terrainGenerator.options.firstWaveMultiplier,
@@ -44,9 +45,7 @@ export class Terrain extends GNode3D {
         ROAD_INTERPOLATION: this.terrainGenerator.options.roadInterpolation,
         ROAD_CURVENESS: this.terrainGenerator.options.roadCurveness,
         SEED
-      })
-      .fragment(ShadersManager.import('/game/shaders/terrain.frag.glsl'))
-      .compile())({
+      }))({
         albedo_color: Color.ORANGE.saturation(0.2),
       })
 

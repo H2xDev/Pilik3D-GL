@@ -1,9 +1,13 @@
 import { BaseMaterial, GNode3D, gl } from "./index.js";
 
-const DEFAULT_MATERIAL = new BaseMaterial();
-
 export class Mesh extends GNode3D {
+  static DEFAULT_MATERIAL = null;
+
   geometry_ = null;
+
+  /**
+    * @type { import('./baseMaterial.js').BaseMaterial | null }
+    */
   material = null;
   backfaceCulling = true;
   smoothShading = true;
@@ -26,8 +30,11 @@ export class Mesh extends GNode3D {
     * @param { import('./geometry.js').Geometry } geometry_
     * @param { import('./baseMaterial.js').BaseMaterial } material
     */
-  constructor(geometry_, material = DEFAULT_MATERIAL) {
+  constructor(geometry_, material) {
     super();
+    Mesh.DEFAULT_MATERIAL ??= new BaseMaterial();
+    material ??= Mesh.DEFAULT_MATERIAL;
+
     Object.assign(this, { geometry_, material });
     if (geometry_) this.setup();
   }
@@ -69,26 +76,27 @@ export class Mesh extends GNode3D {
     gl.bindVertexArray(null);
   }
 
-  process(dt) {
-    gl.useProgram(this.material.program);
-
-    this.material.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
-
-    if (this.backfaceCulling) {
-      gl.enable(gl.CULL_FACE);
-      gl.cullFace(gl.BACK);
-    }
-
+  renderMesh() {
     gl.bindVertexArray(this.vao);
-
-    // this.material.shadowPassUniforms();
-    // gl.drawElements(gl.TRIANGLES, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
-
     this.material.applyUniforms();
+    this.material.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
     const renderType = this.wireframe ? gl.LINES : gl.TRIANGLES;
     gl.drawElements(renderType, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
 
     gl.bindVertexArray(null);
     gl.useProgram(null);
+  }
+
+  renderDepth() {
+    gl.bindVertexArray(this.vao);
+    this.material.depthPass.applyUniforms();
+    this.material.depthPass.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
+    gl.drawElements(gl.TRIANGLES, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
+  }
+
+
+  process() {
+    this.renderDepth();
+    this.renderMesh();
   }
 }

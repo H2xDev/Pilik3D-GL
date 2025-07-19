@@ -1,6 +1,6 @@
 import { Vec3 } from "@core/vec3.js";
 
-export const SEED = +(Math.random() * 2000).toFixed(6);
+export const SEED = 0.618033988749895; 
 console.log("SEED", SEED);
 
 function dot(a, b) {
@@ -71,11 +71,11 @@ export class TerrainGenerator {
   options = {
     firstWaveIterations: 10.0,
     firstWavePower: 2.0,
-    firstWaveMultiplier: 2.0,
+    firstWaveMultiplier: 1.0,
 
-    secondWaveIterations: 4,
-    secondWaveMultiplier: 6.0,
-    secondWavePower: 2.0,
+    secondWaveIterations: 10,
+    secondWaveMultiplier: 10.0,
+    secondWavePower: 4.0,
 
     roadWidth: 2.0,
     roadInterpolation: 2.0,

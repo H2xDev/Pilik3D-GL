@@ -5,8 +5,8 @@ import { til } from './utils.js';
 import { SongsManager } from './songsManager.js';
 
 const AMBIENT_COLOR = Color.BLUE.mix(Color.WHITE, 0.5).saturation(0.25);
-const SUN_DIRECTION = Vec3.DOWN.add(Vec3.LEFT).normalized;
-const FLY_HEIGHT = 7.0; // Height at which the camera flies
+const SUN_DIRECTION = Vec3.DOWN.add(Vec3.LEFT.mul(5.0)).normalized;
+const FLY_HEIGHT = 20.0; // Height at which the camera flies
 const LOOK_AHEAD_DISTANCE = 50.0; // Distance to look ahead on the road
 
 const FLYING_STATE = new class FlyingState extends State {
@@ -60,8 +60,8 @@ const MOVE_TO_CAR_STATE = new class MoveToCarState extends State {
     this.cameraz = cameraz;
     this.camera = camera;
     // this.scene.addChild(camera);
-    this.scene.player.position = this.scene.terrain.getRoad(cameraz - 100.0);
-    this.scene.player.model.basis.forward = this.scene.terrain.getRoadForward(cameraz - 100.0).normalized;
+    // this.scene.player.position = this.scene.terrain.getRoad(cameraz - 100.0);
+    // this.scene.player.model.basis.forward = this.scene.terrain.getRoadForward(cameraz - 100.0).normalized;
     const { terrain } = this.scene;
     const splash = document.querySelector('.splash');
 
@@ -99,8 +99,8 @@ const MOVE_TO_CAR_STATE = new class MoveToCarState extends State {
 
 export const Game = new class extends Scene {
   sun       = this.addChild(new DirectionalLight(Color.ORANGE.saturation(0.5), SUN_DIRECTION, AMBIENT_COLOR));
-  terrain   = this.addChild(new Terrain());
   player    = this.addChild(new Player());
+  terrain   = this.addChild(new Terrain());
   camera    = this.addChild(new Camera3D());
 
   stateMachine = this.addChild(new StateMachine(FLYING_STATE));

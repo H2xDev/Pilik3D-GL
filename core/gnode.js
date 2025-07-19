@@ -53,6 +53,8 @@ export class GNode {
    */
   process(dt) {}
 
+  preprocess(dt) {}
+
   /**
    * For internal use only. Processes the node and its children.
    * @param { number } dt - Delta time since last frame
@@ -61,6 +63,7 @@ export class GNode {
   _process(dt) {
     if (!this.enabled) return;
     this.process(dt);
+    this.children.forEach(child => child.preprocess(dt));
     this.children.forEach(child => child._process(dt));
   }
 
@@ -106,9 +109,9 @@ export class GNode {
   }
 
   /**
-    * @template { typeof GNode } T
-    * @param { T } nodeClass - The child node to remove
-    * @param { GNode } node - The child node to remove
+    * @template T
+    * @param { T } nodeClass - The class of nodes to search for
+    * @param { GNode } node - The node to start searching from, defaults to this node
     *
     * @returns { InstanceType<T>[] } - An array of nodes of the specified class
     */

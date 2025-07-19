@@ -24,12 +24,32 @@ export const failed = (condition, method) => {
   return false;
 }
 
-export const orhographicProjection = (l, r, t, b, n, f) => [  
-2/(r-l),  0,          0,         -(r+l)/(r-l),
-0,        2/(t-b),    0,         -(t+b)/(t-b),
-0,        0,         -2/(f-n),   -(f+n)/(f-n),
-0,        0,          0,          1
-]
+export const orthographicProjection = (left, right, bottom, top, near, far) => {
+  const dst = new Array(16);
+  dst[ 0] = 2 / (right - left);
+  dst[ 1] = 0;
+  dst[ 2] = 0;
+  dst[ 3] = 0;
+  
+  dst[ 4] = 0;
+  dst[ 5] = 2 / (top - bottom);
+  dst[ 6] = 0;
+  dst[ 7] = 0;
+  
+  dst[ 8] = 0;
+  dst[ 9] = 0;
+  dst[10] = -2 / (far - near);
+  dst[11] = 0;
+  
+  dst[12] = -(right + left) / (right - left);
+  dst[13] = -(top + bottom) / (top - bottom);
+  dst[14] = -(far + near) / (far - near);
+  dst[15] = 1;
+
+  return dst;
+};
+
+export const nextPowerOfTwo = (x) => Math.pow(2, Math.floor(Math.log2(x)));
 
 /**
   * Waits until a condition is met, checking it on each animation frame.

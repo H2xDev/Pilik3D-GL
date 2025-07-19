@@ -1,3 +1,4 @@
+import { DirectionalLight } from "./directionalLight.js";
 import { GNode } from "./gnode.js";
 
 export class Scene extends GNode {
@@ -15,8 +16,9 @@ export class Scene extends GNode {
   exit() {}
 
   _process(dt) {
-    this.bg(dt);
-    this.children.forEach(child => child.bg?.(dt));
+    if (DirectionalLight.current) {
+      DirectionalLight.current.clearDepth();
+    }
 
     super._process(dt);
     this.time += dt;
