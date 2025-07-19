@@ -98,25 +98,27 @@ export class Basis {
     const s = Math.sin(angle);
     const t = 1 - c;
   
-    const x = axis.x;
-    const y = axis.y;
-    const z = axis.z;
+    const x = axis.x, y = axis.y, z = axis.z;
   
-    // 3x3 rotation matrix (row-major)
     const rotationMatrix = [
       t * x * x + c,     t * x * y - s * z, t * x * z + s * y,
       t * y * x + s * z, t * y * y + c,     t * y * z - s * x,
       t * z * x - s * y, t * z * y + s * x, t * z * z + c
     ];
   
-    // Сохраняем старые значения
+    const applyRotation = (v) => new Vec3(
+      v.x * rotationMatrix[0] + v.y * rotationMatrix[1] + v.z * rotationMatrix[2],
+      v.x * rotationMatrix[3] + v.y * rotationMatrix[4] + v.z * rotationMatrix[5],
+      v.x * rotationMatrix[6] + v.y * rotationMatrix[7] + v.z * rotationMatrix[8]
+    );
+  
     const oldX = this.x;
     const oldY = this.y;
     const oldZ = this.z;
   
-    this.x = oldX.mul(rotationMatrix[0]).add(oldY.mul(rotationMatrix[1])).add(oldZ.mul(rotationMatrix[2]));
-    this.y = oldX.mul(rotationMatrix[3]).add(oldY.mul(rotationMatrix[4])).add(oldZ.mul(rotationMatrix[5]));
-    this.z = oldX.mul(rotationMatrix[6]).add(oldY.mul(rotationMatrix[7])).add(oldZ.mul(rotationMatrix[8]));
+    this.x = applyRotation(oldX);
+    this.y = applyRotation(oldY);
+    this.z = applyRotation(oldZ);
   
     return this;
   }
@@ -156,6 +158,11 @@ export class Basis {
     */
   lookAt(direction, up = Vec3.UP) {
     const z = direction.normalized.mul(-1);
+
+    if (Math.abs(z.dot(up.normalized)) > 0.999) {
+      up = Math.abs(z.y) < 0.999 ? new Vec3(0, 1, 0) : new Vec3(0.5, 0, 0.5).normalized;
+    }
+
     const x = up.cross(z).normalized;
     const y = z.cross(x).normalized;
 

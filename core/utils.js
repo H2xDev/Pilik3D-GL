@@ -30,3 +30,32 @@ export const orhographicProjection = (l, r, t, b, n, f) => [
 0,        0,         -2/(f-n),   -(f+n)/(f-n),
 0,        0,          0,          1
 ]
+
+/**
+  * Waits until a condition is met, checking it on each animation frame.
+  * @param { () => boolean } conditionGetter - A function that returns a boolean indicating whether the condition is met.
+  */
+export const til = (conditionGetter) => {
+  return new Promise((resolve) => {
+    const checkCondition = () => {
+      if (conditionGetter()) {
+        resolve();
+      } else {
+        requestAnimationFrame(checkCondition);
+      }
+    };
+    checkCondition();
+  });
+}
+
+
+/**
+  * Returns a random element from the given array.
+  */
+export const pickRandom = (arr) => {
+  if (!Array.isArray(arr) || arr.length === 0) {
+    throw new Error("pickRandom: Argument must be a non-empty array");
+  }
+  const index = Math.floor(Math.random() * arr.length);
+  return arr[index];
+}

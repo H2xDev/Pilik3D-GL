@@ -206,6 +206,28 @@ export class Vec3 {
       .add(basis.z.mul(this.z));
   }
 
+  /**
+    * Returns signed angle in radians between this vector and another vector.
+    */
+  angleTo(v, up) {
+    const dot = this.dot(v);
+    const len1 = this.length;
+    const len2 = v.length;
+
+    if (len1 === 0 || len2 === 0) return 0;
+
+    const angle = Math.acos(Math.max(-1, Math.min(dot / (len1 * len2), 1)));
+
+    if (up) {
+      const cross = this.cross(v);
+      if (cross.dot(up) < 0) {
+        return -angle;
+      }
+    }
+
+    return angle;
+  }
+
   toString() {
     return `Vec3(${this.x.toFixed(2)}, ${this.y.toFixed(2)}, ${this.z.toFixed(2)})`;
   }

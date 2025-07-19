@@ -1,18 +1,11 @@
-export class ShadersManager {
-  static instance = new ShadersManager();
-
+export const ShadersManager = new class ShadersManager {
   /**
     * @type { Record<string, string> }
     */
   shaders = {};
 
   constructor() {
-    if (ShadersManager.instance) {
-      return ShadersManager.instance;
-    }
-
     this.shaders = {};
-    ShadersManager.instance = this;
   }
 
   /**

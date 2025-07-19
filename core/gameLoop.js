@@ -55,7 +55,7 @@ export class GameLoop {
 	}
 
 	mountTo(element) {
-		element.appendChild(canvas);
+		element.prepend(canvas);
 		return this;
 	}
 

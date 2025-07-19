@@ -1,8 +1,8 @@
 import { Color } from "./color.js";
 
 export const FogType = {
-  LINEAR: 'linear',
-  EXPONENTIAL: 'exponential',
+  LINEAR: 0,
+  EXPONENTIAL: 1,
 };
 
 export class Fog {

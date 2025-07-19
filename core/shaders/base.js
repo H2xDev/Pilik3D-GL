@@ -47,6 +47,7 @@ export const BASE_FRAGMENT_SHADER = /* glsl */`
   in vec3 v_camera_forward;
   
   uniform vec3 albedo_color;
+  uniform float shading_hardness;
   
   // Directional light
   uniform vec3 SUN_COLOR;
@@ -61,6 +62,7 @@ export const BASE_FRAGMENT_SHADER = /* glsl */`
   // Fog
   uniform vec3 FOG_COLOR;
   uniform float FOG_DENSITY;
+  uniform bool FOG_TYPE;
   
   // Specular
   uniform bool specular;
@@ -68,14 +70,21 @@ export const BASE_FRAGMENT_SHADER = /* glsl */`
 
   void processFog(inout vec3 color) {
     float distance = length(v_position - v_camera_world_position);
-    float fog_factor = exp(-FOG_DENSITY * distance);
+    float linear_distance = max(0.0, distance - FOG_DENSITY) / FOG_DENSITY;
+
+    float fog_factor = FOG_TYPE
+      ? exp(-FOG_DENSITY * distance)
+      : max(0.0, 1.0 - linear_distance);
 
     color = mix(color, FOG_COLOR, 1.0 - fog_factor);
   }
 
   void processDirectionalLight(inout vec3 color) {
-    float sun_affection = pow(max(dot(v_normal, -SUN_DIRECTION), 0.0), 1.0);
+    float sun_affection = pow(max(dot(v_normal, -SUN_DIRECTION), 0.0), 1.0 / shading_hardness);
     vec3 light_color = SUN_COLOR * sun_affection;
+
+    float surface_brightness = color.r * 0.299 + color.g * 0.587 + color.b * 0.114;
+
 
     color *= SUN_AMBIENT;
     color += light_color;

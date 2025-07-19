@@ -49,6 +49,7 @@ export const defineSpatialMaterial = () => ({
     return class extends ShaderMaterial(vertex(this.v), fragment(this.f)) {
       params = {
         albedo_color: Color.WHITE,
+        shading_hardness: 3.0,
         specular: false,
         specular_power: 32.0,
       }
@@ -83,6 +84,7 @@ export const defineSpatialMaterial = () => ({
         // Set fog parameters
         this.setParameter('FOG_COLOR', fog ? fog.color : Color.WHITE);
         this.setParameter('FOG_DENSITY', fog ? fog.density : 0.0);
+        this.setParameter('FOG_TYPE', fog ? fog.type : 0); // 0 for linear, 1 for exponential
 
         super.applyUniforms();
       }

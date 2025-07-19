@@ -30,7 +30,6 @@ export class Scene extends GNode {
     * @returns { T }
     */
   addChild(child) {
-
     child.scene = this;
     child.children.forEach(c => c.scene = this);
 

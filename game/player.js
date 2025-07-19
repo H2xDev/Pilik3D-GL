@@ -1,12 +1,14 @@
-import { Input, Vec3, Mesh, GNode3D, Color, Basis, getNormal, GSound, BaseMaterial } from '@core/index.js';
+import { Input, Vec3, Mesh, GNode3D, Color, Basis, getNormal, GSound, BaseMaterial, GameDebugger } from '@core/index.js';
 import { OBJImporter } from '@core/importers/obj.js';
 import { getAcceleration, getFrictionRate } from './utils.js';
 import { CylinderGeometry } from '@core/importers/cylinder.js';
+import { Terrain } from './terrain.js';
 
 const GRAVITY = 2.81; // Gravity constant
 
 const CAR_MATERIAL = new BaseMaterial({
   albedo_color: Color.RED,
+  shading_hardness: 3.0,
 })
 
 const BACK_TIRE_GEOMETRY = new CylinderGeometry(0.4, 2.5, 8);
@@ -30,6 +32,9 @@ export class Player extends GNode3D {
   debug = false;
   aim = Basis.IDENTITY;
   tireRotation = 0;
+  controlsDisabled = false;
+  autopilot = true;
+  volume = 0.0;
 
   input = new Input({
     "moveForward": "KeyW",
@@ -40,6 +45,13 @@ export class Player extends GNode3D {
 
   engineLoop = new GSound('/game/assets/reving.ogg', { loop: true, volume: 0.1 });
   screetchLoop = new GSound('/game/assets/tire_screech.ogg', { loop: true, volume: 0.0 });
+
+  /**
+    * @type { Terrain }
+    */
+  get terrain() {
+    return this.scene.terrain;
+  }
 
   get camera() {
     return this.scene.camera;
@@ -71,7 +83,7 @@ export class Player extends GNode3D {
         .mul(0.5));
 
     // NOTE: Prevent camera from going below terrain
-    const minY = this.scene.terrain.getHeightAt(pos.x, pos.z) + 0.25;
+    const minY = this.terrain.getHeightAt(pos.x, pos.z) + 0.25;
     pos.y = Math.max(pos.y, minY);
 
     return pos;
@@ -96,19 +108,27 @@ export class Player extends GNode3D {
     this.forwardTire2.position = new Vec3(-0.13, -0.05, -0.20);
     this.forwardTire2.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.RIGHT);
 
-    this.camera.position = this.targetCameraPosition;
-    this.camera.basis = this.transform.basis;
-
-    window.addEventListener('mousemove', this.processMouse.bind(this));
-    this.input.once(Input.Events.ANY_PRESSED, (keyCode) => {
+    window.addEventListener('click', (keyCode) => {
       this.engineLoop.play()
       this.screetchLoop.play();
-    });
+    }, { once: true });
 
     this.addChild(this.model);
     this.model.addChild(this.backTires);
     this.model.addChild(this.forwardTire1);
     this.model.addChild(this.forwardTire2);
+    this.model.basis.forward = this.terrain.getRoadForward(this.position.z);
+    this.position = this.terrain.getRoad(this.position.z);
+
+    this.camera.position = this.targetCameraPosition;
+    this.camera.basis = this.model.globalTransform.basis;
+
+    // GameDebugger.addDebugInfo('Velocity', () => this.velocity.length);
+    // GameDebugger.addDebugInfo('Distance to road', () => {
+    //   return this.terrain
+    //     .getDistanceToRoad(this.position.x, this.position.z).toFixed(2) + 'meters';
+    // });
+    // GameDebugger.color("white");
   }
 
   /**
@@ -116,32 +136,34 @@ export class Player extends GNode3D {
     */
   process(dt) {
     if (!this.model) return;
+    this.processAutopilot(dt);
     this.processCamera(dt);
     this.processMovement(dt);
     this.processGravity(dt);
     this.processSound(dt);
   }
 
+  processAutopilot(dt) {
+    if (!this.autopilot) return;
+    if (!dt) return;
+    const vel = this.velocity;
+    const forward = this.terrain.getRoadForward(this.position.add(vel).z);
+    const angle = forward.angleTo(this.model.basis.forward, Vec3.UP);
+    this.forwardSpeed = 0.8;
+    this.turnVelocity = -angle * 2.0;
+  }
+
   processSound(dt) {
-    const volume = Math.max(Math.min(1, this.velocity.length / 15) * 0.25, 0.1);
-    this.engineLoop.volume = volume;
+    const volume = Math.max(Math.min(1, this.velocity.length / this.movementSpeed) * 0.25, 0.1);
+    this.engineLoop.volume = volume * this.volume;
 
     const pitch = this.velocity.length % 2;
     const pitchLap = Math.floor(this.velocity.length / 5);
     this.engineLoop.rate = 0.3 + pitch * 0.2 + pitchLap * 0.3;
 
-    this.screetchLoop.volume = Math.min(0.25, this.driftValue / 1);
+    this.screetchLoop.volume = Math.min(0.25, this.driftValue / 1) * this.volume;
   }
 
-  /**
-    * @param { MouseEvent } event - The mouse event.
-    */
-  processMouse(event) {
-    const { movementX, movementY } = event;
-
-    // this.aim.rotate(this.aim.up, -movementX * 0.0025);
-    // this.aim.rotate(this.aim.inverse.right, -movementY * 0.0025);
-  }
 
   processCamera(dt) {
     this.camera.position = this.camera.position
@@ -151,12 +173,19 @@ export class Player extends GNode3D {
 
     this.camera.basis = this.camera.basis
       .slerp(targetBasis, 4 * dt)
-      .rotated(this.basis.up, this.turnVelocity * -dt)
-      .multiply(Basis.IDENTITY.rotated(Vec3.FORWARD, this.turnVelocity * 0.5 * dt));
+      .rotated(this.basis.up, this.turnVelocity * dt)
+      .multiply(Basis.IDENTITY.rotated(Vec3.FORWARD, this.turnVelocity * 0.5 * -dt));
+
+    this.camera.fov = 45 + this.velocity.length * 3.0;
   }
 
   processMovement(dt) {
-    const { x, y } = this.input.getAxis("turnRight", "turnLeft", "moveForward", "moveBack");
+    let { x, y } = this.input.getAxis("turnRight", "turnLeft", "moveForward", "moveBack");
+
+    if (this.controlsDisabled || this.autopilot) {
+      x = 0;
+      y = 0;
+    }
 
     this.forwardSpeed -= (this.forwardSpeed - y) * dt;
 
@@ -166,15 +195,15 @@ export class Player extends GNode3D {
     const tireRotation = Math.max(Math.PI * -0.25, Math.min(Math.PI * 0.25, -this.turnVelocity));
 
     this.backTires.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
-      .rotate(Vec3.DOWN, this.tireRotation);
+      .rotate(Vec3.RIGHT, this.tireRotation);
 
     this.forwardTire1.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
-      .rotate(Vec3.LEFT, tireRotation)
-      .rotate(Vec3.DOWN, this.tireRotation);
+      .rotate(Vec3.LEFT, this.tireRotation)
+      .rotate(Vec3.UP, tireRotation);
 
     this.forwardTire2.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
-      .rotate(Vec3.LEFT, tireRotation)
-      .rotate(Vec3.DOWN, this.tireRotation);
+      .rotate(Vec3.LEFT, this.tireRotation)
+      .rotate(Vec3.UP, tireRotation);
 
 
     if (this.isOnGround) {
@@ -206,7 +235,7 @@ export class Player extends GNode3D {
     */
   processGravity(dt) {
     const { forward: modelForward, left: modelLeft, right: modelRight } = this.model.basis;
-    const { terrain } = this.scene;
+    const { terrain } = this;
 
     const p1 = modelForward.mul(0.3).add(modelLeft.mul(0.125)).add(this.position);
     const p2 = modelForward.mul(0.3).add(modelRight.mul(0.125)).add(this.position);
@@ -224,9 +253,9 @@ export class Player extends GNode3D {
     const normal = n1.add(n2).normalized;
     normal.y = Math.abs(normal.y);
 
-    this.isOnGround = this.position.y - 0.01 <= targetY;
+    this.isOnGround = this.position.y - 0.01 <= targetY && this.velocity.y < 0;
 
-    if (this.position.y - 0.01 > targetY) {
+    if (!this.isOnGround) {
       this.velocity = this.velocity.add(Vec3.UP.mul(-GRAVITY * dt)); // Gravity
     }
 
@@ -236,7 +265,8 @@ export class Player extends GNode3D {
       : this.model.basis.up.lerp(Vec3.UP, dt);
 
     const targetPos = Math.max(targetY, this.position.y);
-    this.position.y -= (this.position.y - targetPos) * dt * 4;
-    this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 100;
+    this.position.y = targetPos;
+    // this.position.y -= (this.position.y - targetPos) * dt * 4;
+    // this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 100;
   }
 }

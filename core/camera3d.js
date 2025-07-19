@@ -19,10 +19,6 @@ export class Camera3D extends GNode3D {
     this.makeCurrent();
   }
 
-  process() {
-    if (Camera3D.current !== this) return;
-  }
-
   makeCurrent() {
     Camera3D.current = this;
   }

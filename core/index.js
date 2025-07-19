@@ -24,3 +24,5 @@ export * from './shaderMaterial.js';
 export * from './baseMaterial.js';
 export * from './mesh.js';
 export * from './shadersManager.js';
+export * from './debugger.js';
+export * from './stateMachine.js';
