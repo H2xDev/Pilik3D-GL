@@ -76,27 +76,23 @@ export class Mesh extends GNode3D {
     gl.bindVertexArray(null);
   }
 
-  renderMesh() {
-    gl.bindVertexArray(this.vao);
-    this.material.applyUniforms();
-    this.material.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
+  render(material) {
+    if (!material) return;
     const renderType = this.wireframe ? gl.LINES : gl.TRIANGLES;
-    gl.drawElements(renderType, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
-
-    gl.bindVertexArray(null);
-    gl.useProgram(null);
-  }
-
-  renderDepth() {
+    material.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
+    if (this.backfaceCulling) {
+      gl.enable(gl.CULL_FACE);
+      gl.cullFace(gl.BACK);
+    }
     gl.bindVertexArray(this.vao);
-    this.material.depthPass.applyUniforms();
-    this.material.depthPass.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
-    gl.drawElements(gl.TRIANGLES, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(renderType, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
+    gl.bindVertexArray(null);
   }
 
+  _render() {
+    this.material.applyUniforms();
+    this.render(this.material);
 
-  process() {
-    this.renderDepth();
-    this.renderMesh();
+    super._render();
   }
 }

@@ -33,7 +33,7 @@ export class Player extends GNode3D {
   aim = Basis.IDENTITY;
   tireRotation = 0;
   controlsDisabled = false;
-  autopilot = true;
+  autopilot = false;
   volume = 0.0;
 
   input = new Input({
@@ -95,7 +95,7 @@ export class Player extends GNode3D {
 
     this.model = new Mesh(new OBJImporter(modelData), CAR_MATERIAL)
     this.model.scale = new Vec3(0.125, 0.125, 0.125);
-    this.model.position.y = 0.1;
+    this.model.position.y = 0.09;
 
     this.backTires = new Mesh(BACK_TIRE_GEOMETRY, TIRE_MATERIAL);
     this.forwardTire1 = new Mesh(FORWARD_TIRE_GEOMETRY, TIRE_MATERIAL);

@@ -1,6 +1,10 @@
-import { Color, gl, GNode3D, Vec3, orthographicProjection, Camera3D, nextPowerOfTwo, Mesh } from './index.js';
+import { Color, gl, GNode3D, Vec3, orthographicProjection, Camera3D, ShaderMaterial, vertex, fragment } from './index.js';
+import { BASE_DEPTH_FRAGMENT_SHADER, BASE_VERTEX_SHADER } from './shaders/base.js';
 
 export class DirectionalLight extends GNode3D {
+  static programsCache = {};
+  static fragmentShader = null;
+
   color = new Color(1, 1, 1);
   ambient = new Color(0.2, 0.2, 0.2);
   energy = 4;
@@ -26,8 +30,6 @@ export class DirectionalLight extends GNode3D {
       -height, height,
       this.near, this.far,
     );
-
-    console.log(this.textureSize);
 
     gl.bindTexture(gl.TEXTURE_2D, this.shadowTexture);
     gl.texImage2D(
@@ -65,10 +67,44 @@ export class DirectionalLight extends GNode3D {
     gl.clear(gl.DEPTH_BUFFER_BIT);
   }
 
-  process(dt, ctx) {
+  getMaterial(vertexShader) {
+    DirectionalLight.fragmentShader ??= fragment(BASE_DEPTH_FRAGMENT_SHADER);
+    const { programsCache, fragmentShader } = DirectionalLight;
+
+    const { _id } = vertexShader;
+
+    if (programsCache[_id]) {
+      return programsCache[_id];
+    }
+
+    programsCache[_id] = new (ShaderMaterial(vertexShader, fragmentShader))();
+    return programsCache[_id];
+  }
+
+  process(dt) {
     DirectionalLight.current = this;
 
     this.transform.position = Camera3D.current.transform.position
       .add(this.transform.basis.forward.mul(-this.far * 0.5));
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    gl.viewport(0, 0, this.textureSize, this.textureSize);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    this.scene.renderScene((node) => {
+      if (!(node instanceof GNode3D)) return;
+      if (!node.material) return;
+
+
+      const material = this.getMaterial(node.material.vertexShader);
+      gl.useProgram(material.program);
+      material.setParameter('CAMERA_VIEW_MATRIX', this.globalTransform.inverse.toMat4());
+      material.setParameter('PROJECTION', this.projection);
+
+      return material;
+    })
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    gl.useProgram(null);
   }
 }

@@ -32,6 +32,7 @@ export class GameLoop {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
 		this.scene._process(DELTA_TIME);
+    this.scene._render();
 
 		requestAnimationFrame(this.renderLoop.bind(this));
 	}

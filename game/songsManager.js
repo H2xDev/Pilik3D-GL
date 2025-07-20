@@ -3,7 +3,7 @@ import { pickRandom } from '@core/utils.js';
 const html = (string) => string;
 
 const FADE_TIME = 3; // 1 second fade time
-const SONG_DURATION = 60 * 1; // 3 minutes song duration
+const SONG_DURATION = 60 * 5; // 3 minutes song duration
 const FADE_PERCENT = FADE_TIME / SONG_DURATION;
 
 /**

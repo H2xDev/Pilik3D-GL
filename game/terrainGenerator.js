@@ -1,26 +1,10 @@
-import { Vec3 } from "@core/vec3.js";
+import { Vec3, Vec2 } from "@core/index.js";
 
 export const SEED = 0.618033988749895; 
 console.log("SEED", SEED);
 
-function dot(a, b) {
-  return a[0] * b[0] + a[1] * b[1];
-}
-
-function length(v) {
-  return Math.sqrt(dot(v, v));
-}
-
-function sin(x) {
-  return Math.sin(x);
-}
-
-function cos(x) {
-  return Math.cos(x);
-}
-
-function exp(x) {
-  return Math.exp(x);
+function clamp(x, min, max) {
+  return Math.max(min, Math.min(max, x));
 }
 
 function mix(a, b, t) {
@@ -28,30 +12,31 @@ function mix(a, b, t) {
 }
 
 function wavedx(position, direction, frequency, timeshift) {
-  const x = dot(direction, position) * frequency + timeshift;
-  const wave = exp(sin(x) - 1.0);
-  const dx = wave * cos(x);
-  return [wave, -dx];
+  const x = direction.dot(position) * frequency + timeshift;
+  const wave = Math.exp(Math.sin(x) - 1.0);
+  const dx = wave * Math.cos(x);
+  return new Vec2(wave, -dx);
 }
 
-function getwaves(position, iterations, time = 0.0) {
-  let wavePhaseShift = length(position) * 0.1;
+function getwaves(position, iterations, time, SEED) {
+  const wavePhaseShift = position.distanceTo(Vec2.ZERO) * 0.1;
+
   let iter = 0.0;
   let frequency = 1.0;
   let timeMultiplier = 2.0;
   let weight = 1.0;
+
   let sumOfValues = 0.0;
   let sumOfWeights = 0.0;
-  position = [...position]; // clone to avoid mutating input
 
   for (let i = 0; i < iterations; i++) {
-    const p = [Math.sin(iter), Math.cos(iter)];
+    const p = new Vec2(Math.sin(iter), Math.cos(iter));
+
     const res = wavedx(position, p, frequency, time * timeMultiplier + wavePhaseShift);
 
-    position[0] += p[0] * res[1] * weight * 0.38;
-    position[1] += p[1] * res[1] * weight * 0.38;
+    position = position.add(p.mul(res.y * weight * 0.38));
 
-    sumOfValues += res[0] * weight;
+    sumOfValues += res.x * weight;
     sumOfWeights += weight;
 
     weight = mix(weight, 0.0, 0.2);
@@ -64,11 +49,12 @@ function getwaves(position, iterations, time = 0.0) {
 }
 
 function easing(x) {
-  return -(Math.cos(Math.PI * x) - 1) / 2;
+  return -(Math.cos(Math.PI * x) - 1.0) / 2.0;
 }
 
+
 export class TerrainGenerator {
-  options = {
+  static DEFAULT_OPTIONS = {
     firstWaveIterations: 10.0,
     firstWavePower: 2.0,
     firstWaveMultiplier: 1.0,
@@ -82,49 +68,91 @@ export class TerrainGenerator {
     roadCurveness: 1.0,
   };
 
+  options = { ...TerrainGenerator.DEFAULT_OPTIONS };
+
   /**
     * @param { Partial<typeof this.options> } options - Configuration options for the terrain generator.
     */
-  constructor(options = {}) {
+  constructor(options = TerrainGenerator.DEFAULT_OPTIONS) {
     Object.assign(this.options, options);
   }
+
   /**
-    * @param { [number, number] } position - The position in the terrain to get the height for.
+    * @param { Vec2 } p - The position in the terrain to get the height for.
     */
-  getHeight(position) {
-    const { firstWaveIterations, firstWavePower, firstWaveMultiplier,
-            secondWaveIterations, secondWaveMultiplier, secondWavePower,
-            roadWidth, roadInterpolation } = this.options;
+  getHeight(p) {
+    const {
+      firstWaveIterations,
+      firstWavePower,
+      firstWaveMultiplier,
+      secondWaveIterations,
+      secondWaveMultiplier,
+      secondWavePower,
+    } = this.options;
 
-    position = position.map(n => n * 0.5);
+    p = p.mul(0.5);
 
-    let [x, y] = position;
+    const waves =
+    Math.pow(getwaves(p, firstWaveIterations, 0.0, SEED), firstWavePower) * firstWaveMultiplier +
+    Math.pow(getwaves(p.mul(0.25), secondWaveIterations, 0.0, SEED), secondWavePower) * secondWaveMultiplier;
 
-    let waves = Math.pow(getwaves(position, firstWaveIterations), firstWavePower) * firstWaveMultiplier;
-    waves += Math.pow(getwaves(position.map(n => n * 0.25), secondWaveIterations), secondWavePower) * secondWaveMultiplier;
-  
-    const roadPos = this.getRoad(y);
-    const roadLength = new Vec3(roadPos[0], 0, roadPos[1]).sub(new Vec3(x, 0, y)).length;
-
-    const distanceToRoad = Math.max(0.0, roadLength - roadWidth * 0.5);
-    let interpolation = 1.0 - Math.max(0.0, Math.min(distanceToRoad / roadInterpolation, 1.0));
-    interpolation = easing(interpolation);
-  
-    return mix(waves, waves * 0.2, interpolation);
+    return mix(waves, waves * 0.2, this.roadValue(p));
   }
 
-  // FIXME: Something wrong with the road coords
+  roadCenter(y) {
+    const { roadCurveness } = this.options;
+    return (
+      Math.sin(y * 0.07 * roadCurveness + Math.cos(y * 0.015)) * 8.0 +
+      Math.cos(y * 0.18 * roadCurveness + Math.sin(y * 0.035)) * 5.0 +
+      Math.sin(y * 0.4) * Math.sin(y * 0.05) * 2.0
+    );
+  }
+  
+  dRoadCenter(y) {
+    const { roadCurveness } = this.options;
+    return (
+      // d/dy [ sin(y * 0.07 * c + cos(y * 0.015)) * 8 ]
+      Math.cos(y * 0.07 * roadCurveness + Math.cos(y * 0.015)) *
+        (0.07 * roadCurveness - Math.sin(y * 0.015) * 0.015) * 8.0 +
+
+      // d/dy [ cos(y * 0.18 * c + sin(y * 0.035)) * 5 ]
+      -Math.sin(y * 0.18 * roadCurveness + Math.sin(y * 0.035)) *
+        (0.18 * roadCurveness + Math.cos(y * 0.035) * 0.035) * 5.0 +
+
+      // d/dy [ sin(y * 0.4) * sin(y * 0.05) * 2 ]
+      (Math.cos(y * 0.4) * 0.4 * Math.sin(y * 0.05) +
+       Math.sin(y * 0.4) * Math.cos(y * 0.05) * 0.05) * 2.0
+    );
+  }
+  
+  roadDistance(pos) {
+    const roadX = this.roadCenter(pos.y);
+    const dxdy = this.dRoadCenter(pos.y);
+  
+    const tangent = new Vec2(dxdy, 1).normalized;
+    const normal = new Vec2(-tangent.y, tangent.x);
+  
+    const center = new Vec2(roadX, pos.y);
+    const toPoint = pos.sub(center);
+  
+    return Math.abs(toPoint.dot(normal));
+  }
+  
+  roadValue(pos) {
+    const { roadWidth } = this.options;
+
+    const dist = this.roadDistance(pos);
+    const interp = 1.0 - clamp((dist / roadWidth - 0.5) / 0.5, 0.0, 1.0);
+    return easing(interp);
+  }
+
   /**
     * @param { number } y - The y coordinate to get the road position for.
     * @returns [number, number] - The road position at the given y coordinate.
     */
   getRoad(y) {
-    const { roadCurveness } = this.options;
-
-    let nx = Math.sin(y * 0.1 * roadCurveness) * 10.0;
-    nx += Math.cos(y * 0.32 * roadCurveness) * 2.0;
-
-    return [nx, y];
+    const nx = this.roadCenter(y);
+    return new Vec2(nx, y);
   }
 
   getForward(z) {

@@ -5,8 +5,9 @@
     "target": "es5",
     "baseUrl": "./",
     "paths": {
-      "@core/*": ["core/*"]
-      "/game": ["game/*"],
+      "@core/*": ["core/*"],
+      "@core": ["core/index.js"],
+      "/game": ["game/*"]
     }
 	}
 }

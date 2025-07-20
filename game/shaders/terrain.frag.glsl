@@ -12,12 +12,14 @@ void fragment(inout vec3 color) {
 
   float distance = 0.02;
   float line_width = 0.02;
-  float line_factor = 1.0 - min(abs(v_position.x - (road_x - distance) * 2.0) / line_width, 1.0);
-  float line_factor2 = 1.0 - min(abs(v_position.x - (road_x + distance) * 2.0) / line_width, 1.0);
-  vec3 line_color = vec3(1.0, 0.6, 0.0) * 0.5;
 
   color = mix(color, color * 0.8, wave * wave_affect);
   color = mix(color, vec3(0.2), road_value);
+
+  // Two lines on the road
+  float line_factor = 1.0 - min(abs(v_position.x - (road_x - distance) * 2.0) / line_width, 1.0);
+  float line_factor2 = 1.0 - min(abs(v_position.x - (road_x + distance) * 2.0) / line_width, 1.0);
+  vec3 line_color = vec3(1.0, 0.6, 0.0) * 0.5;
   color = mix(color, line_color, line_factor);
   color = mix(color, line_color, line_factor2);
 }

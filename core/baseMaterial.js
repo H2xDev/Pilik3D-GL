@@ -19,34 +19,9 @@ export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment
   const VERTEX_SHADER = vertex(v);
   const FRAGMENT_SHADER = fragment(f);
 
-  const DepthMaterial = new class DepthPass extends ShaderMaterial(VERTEX_SHADER, DEPTH_FRAGMENT_SHADER) {
-    applyUniforms() {
-      const { current: camera } = Camera3D;
-      const { current: sun } = DirectionalLight;
-
-      if (!camera) {
-        console.warn("No active camera found. Skipping uniform application.");
-        return;
-      }
-
-      gl.useProgram(this.program);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, sun.frameBuffer);
-      gl.viewport(0, 0, sun.textureSize, sun.textureSize);
-
-      this.setParameter('CAMERA_VIEW_MATRIX', sun.globalTransform.inverse.toMat4());
-      this.setParameter('PROJECTION', sun.projection);
-
-      super.applyUniforms();
-    }
-  }
-
-  // console.log(DepthMaterial);
-
   return class extends ShaderMaterial(VERTEX_SHADER, FRAGMENT_SHADER) {
-    /**
-      * @type { typeof DepthMaterial }
-      */
-    depthPass = DepthMaterial;
+    vertexShader = VERTEX_SHADER;
+    fragmentShader = FRAGMENT_SHADER;
 
     params = {
       albedo_color: Color.WHITE,
@@ -61,7 +36,6 @@ export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment
     constructor(params = {}) {
       super();
       Object.assign(this.params, params);
-      Object.assign(this.depthPass.params, params);
     }
 
     applyUniforms() {

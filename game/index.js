@@ -1,4 +1,4 @@
-import { Scene, Camera3D, Fog, Vec3, Color, DirectionalLight, FogType, GSound, StateMachine, State, Tween, Basis } from '@core/index.js';
+import { Scene, Camera3D, Fog, Vec3, Color, DirectionalLight, FogType, GSound, StateMachine, State, Tween, Basis } from '@core';
 import { Terrain } from './terrain.js';
 import { Player } from './player.js';
 import { til } from './utils.js';
@@ -6,8 +6,8 @@ import { SongsManager } from './songsManager.js';
 
 const AMBIENT_COLOR = Color.BLUE.mix(Color.WHITE, 0.5).saturation(0.25);
 const SUN_DIRECTION = Vec3.DOWN.add(Vec3.LEFT.mul(5.0)).normalized;
-const FLY_HEIGHT = 20.0; // Height at which the camera flies
-const LOOK_AHEAD_DISTANCE = 50.0; // Distance to look ahead on the road
+const FLY_HEIGHT = 10.0;
+const LOOK_AHEAD_DISTANCE = 20.0;
 
 const FLYING_STATE = new class FlyingState extends State {
   camera= Object.assign(new Camera3D(), {
@@ -59,14 +59,16 @@ const MOVE_TO_CAR_STATE = new class MoveToCarState extends State {
 
     this.cameraz = cameraz;
     this.camera = camera;
-    // this.scene.addChild(camera);
-    // this.scene.player.position = this.scene.terrain.getRoad(cameraz - 100.0);
-    // this.scene.player.model.basis.forward = this.scene.terrain.getRoadForward(cameraz - 100.0).normalized;
+    this.scene.addChild(camera);
+    this.scene.player.position = this.scene.terrain.getRoad(cameraz);
+    this.scene.player.model.basis.forward = this.scene.terrain.getRoadForward(cameraz).normalized;
+    this.scene.player.autopilot = true;
     const { terrain } = this.scene;
     const splash = document.querySelector('.splash');
 
 
     const startFov = this.camera.fov;
+    splash.classList.add('fade-out');
 
     Tween.begin(5000, (t, dt) => {
       t = Tween.easeInOutQuart(t);
@@ -85,7 +87,6 @@ const MOVE_TO_CAR_STATE = new class MoveToCarState extends State {
     })
     .then(() => this.scene.camera.makeCurrent())
     .then(() => {
-      splash.classList.add('fade-out');
       SongsManager.showCurrentSong();
     })
     .then(this.scene.startGame.bind(this.scene));
@@ -99,18 +100,18 @@ const MOVE_TO_CAR_STATE = new class MoveToCarState extends State {
 
 export const Game = new class extends Scene {
   sun       = this.addChild(new DirectionalLight(Color.ORANGE.saturation(0.5), SUN_DIRECTION, AMBIENT_COLOR));
-  player    = this.addChild(new Player());
   terrain   = this.addChild(new Terrain());
+  player    = this.addChild(new Player());
   camera    = this.addChild(new Camera3D());
 
   stateMachine = this.addChild(new StateMachine(FLYING_STATE));
 
   wind = new GSound('/game/assets/wind.ogg', { loop: true, volume: 1.0 });
-  fog = new Fog(FogType.EXPONENTIAL, this.sun.ambient, 0.025);
+  fog = new Fog(FogType.LINEAR, this.sun.ambient, 40);
 
   async begin() {
     await til(() => !!this.player.model);
-    this.player.position = this.terrain.getRoad(10).add(new Vec3(0, 0.1, 0));
+    this.player.position = this.terrain.getRoad(0).add(new Vec3(0, 0.1, 0));
   }
 
   startGame() {

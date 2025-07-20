@@ -1,57 +1,56 @@
-import { Mesh, Vec3, Color, GNode3D, defineSpatialMaterial, ShadersManager, Camera3D } from "@core/index.js";
+import { Mesh, Vec3, Color, defineSpatialMaterial, ShadersManager, Camera3D, gl, Vec2 } from "@core/index.js";
 import { PlaneGeometry } from "../core/importers/plane.js";
 import { SEED, TerrainGenerator } from "./terrainGenerator.js";
 
-const RENDER_DISTANCE = window.innerWidth < 1340 ? 3 : 10;
+const RENDER_DISTANCE = 5;
 const SCALE = window.innerWidth < 1340 ? 1.0 : 0.25;
 
-export class Terrain extends GNode3D {
-  mesh = null;
+const DEFAULTS = {
+  renderDistance: RENDER_DISTANCE,
+  chunkSize: 254,
+  gridSize: 254 * SCALE,
+  scale: SCALE,
+}
 
+
+export class Terrain extends Mesh {
   /**
     * @type { TerrainGenerator }
     */
   terrainGenerator = null;
 
-  options = {
-    renderDistance: RENDER_DISTANCE,
-    chunkSize: 254,
-    gridSize: 100,
-    scale: SCALE,
-  }
+  options = { ...DEFAULTS };
+  referencePosition = new Vec3(0, 0, 0);
+  positionHash_ = '';
 
   /**
     * @param { Partial<typeof this.options> } options - Configuration options for the terrain.
     * @param { Partial<TerrainGenerator['options']> } terrainOptions - Additional options for the terrain material.
     */
-  constructor(options = {}, terrainOptions = {}) {
-    super();
-
-    Object.assign(this.options, options);
-    this.terrainGenerator = new TerrainGenerator(terrainOptions);
-
-    const geometry = new PlaneGeometry(this.options.chunkSize, this.options.chunkSize);
+  constructor(options = DEFAULTS, terrainOptions = TerrainGenerator.DEFAULT_OPTIONS) {
+    const geometry = new PlaneGeometry(options.chunkSize, options.chunkSize, true);
     const vertexShader = ShadersManager.import('/game/shaders/terrain.vert.glsl');
     const fragmentShader = ShadersManager.import('/game/shaders/terrain.frag.glsl');
-
     const material = new (defineSpatialMaterial(vertexShader, fragmentShader, {
-        FIRST_WAVE_ITERATIONS: this.terrainGenerator.options.firstWaveIterations,
-        FIRST_WAVE_POWER: this.terrainGenerator.options.firstWavePower,
-        FIRST_WAVE_MULTIPLIER: this.terrainGenerator.options.firstWaveMultiplier,
-        SECOND_WAVE_ITERATIONS: this.terrainGenerator.options.secondWaveIterations,
-        SECOND_WAVE_MULTIPLIER: this.terrainGenerator.options.secondWaveMultiplier,
-        SECOND_WAVE_POWER: this.terrainGenerator.options.secondWavePower,
-        ROAD_WIDTH: this.terrainGenerator.options.roadWidth,
-        ROAD_INTERPOLATION: this.terrainGenerator.options.roadInterpolation,
-        ROAD_CURVENESS: this.terrainGenerator.options.roadCurveness,
-        SEED
-      }))({
-        albedo_color: Color.ORANGE.saturation(0.2),
-      })
+      FIRST_WAVE_ITERATIONS: terrainOptions.firstWaveIterations,
+      FIRST_WAVE_POWER: terrainOptions.firstWavePower,
+      FIRST_WAVE_MULTIPLIER: terrainOptions.firstWaveMultiplier,
+      SECOND_WAVE_ITERATIONS: terrainOptions.secondWaveIterations,
+      SECOND_WAVE_MULTIPLIER: terrainOptions.secondWaveMultiplier,
+      SECOND_WAVE_POWER: terrainOptions.secondWavePower,
+      ROAD_WIDTH: terrainOptions.roadWidth,
+      ROAD_INTERPOLATION: terrainOptions.roadInterpolation,
+      ROAD_CURVENESS: terrainOptions.roadCurveness,
+      SEED
+    }))({
+      albedo_color: Color.ORANGE.saturation(0.2),
+    })
 
-    this.mesh = Object.assign(new Mesh(geometry, material), {
-      scale: new Vec3(this.options.scale),
-    });
+    super(geometry, material);
+    Object.assign(this.options, options);
+
+    this.scale = new Vec3(SCALE);
+    this.terrainGenerator = new TerrainGenerator(terrainOptions);
   }
 
   /** @type { import("./player.js").Player } */
@@ -60,20 +59,30 @@ export class Terrain extends GNode3D {
   }
 
   process(dt) {
-    const { renderDistance, chunkSize, gridSize, scale: terrainScale } = this.options;
+    const { gridSize } = this.options;
 
-    this.position = this.player.position.div(gridSize).round().mul(gridSize);
+    this.referencePosition = this.player.position
+      .div(gridSize).round().mul(gridSize);
+  }
+
+  render(material) {
+    const { renderDistance, chunkSize, scale: terrainScale } = this.options;
+    this.position = new Vec3(0, 0, 0).mul(terrainScale).add(this.referencePosition);
+
+    const halfDistance = Math.floor(renderDistance / 2);
 
     for (let i = 0; i < renderDistance ** 2; i++) {
-      const size = (renderDistance * chunkSize) * 0.5;
-      const x = (i % renderDistance ) * chunkSize- size;
-      const z = Math.floor(i / renderDistance ) * chunkSize- size;
+      const x = (i % renderDistance) * chunkSize - halfDistance * chunkSize;
+      const z = Math.floor(i / renderDistance) * chunkSize - halfDistance * chunkSize;
 
-      this.mesh.position = new Vec3(x, 0, z).mul(terrainScale).add(this.position);
-      this.mesh.process(dt);
+      this.position = new Vec3(x, 0, z).mul(terrainScale).add(this.referencePosition);
+      super.render(material);
     }
+  }
 
-    super.process(dt);
+  _render() {
+    this.material.applyUniforms();
+    this.render(this.material);
   }
 
   getPositionAt(x, z) {
@@ -98,18 +107,19 @@ export class Terrain extends GNode3D {
     * @param { number } z - The z coordinate.
     */
   getHeightAt(x, z) {
-    return this.terrainGenerator.getHeight([x, z]);
+    return this.terrainGenerator.getHeight(new Vec2(x, z));
   }
 
   /**
     * @param { number } z - The z coordinate to get the road position for.
     */
   getRoad(z) {
-    let [x, z1] = this.terrainGenerator.getRoad(z / 2.0);
-    x *= 2; // Adjust for the scale factor used in getHeightAt
-    z1 *= 2; // Adjust for the scale factor used in getHeightAt
+    let { x, y } = this.terrainGenerator.getRoad(z / 2.0);
 
-    return new Vec3(x, this.getHeightAt(x, z), z1);
+    x *= 2; // Adjust for the scale factor used in getHeightAt
+    y *= 2; // Adjust for the scale factor used in getHeightAt
+
+    return new Vec3(x, this.getHeightAt(x, z), y);
   }
 
   getRoadForward(z) {

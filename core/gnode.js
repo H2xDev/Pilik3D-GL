@@ -18,6 +18,9 @@ export class GNode {
   /** @type { import('./scene.js').Scene | null } */
   scene = null;
 
+  /** @type { import('./baseMaterial.js').BaseMaterial | null } */
+  material = null;
+
   /** @type { string } */
   name = "GNode";
 
@@ -34,18 +37,16 @@ export class GNode {
     return node;
   }
 
+  get index() {
+    return this.parent ? this.parent.children.indexOf(this) : -1;
+  }
+
   /** @virtual */
   enterTree() {}
   
   /** @virtual */
   beforeDestroy() {}
   
-  /** @virtual */
-  gui(dt) {}
-
-  /** @virtual */
-  bg(dt) {}
-
   /** 
    * @param { number } dt - Delta time since last frame
    * @param { CanvasRenderingContext2D } ctx - Context for the current frame
@@ -53,7 +54,18 @@ export class GNode {
    */
   process(dt) {}
 
-  preprocess(dt) {}
+  /** @type { Function | null } */
+  render() {}
+
+  /**
+    * For internal use only. Renders the node and its children.
+    */
+  _render() {
+    if (!this.enabled) return;
+
+    this.render();
+    this.children.forEach(child => child._render());
+  }
 
   /**
    * For internal use only. Processes the node and its children.
@@ -63,7 +75,6 @@ export class GNode {
   _process(dt) {
     if (!this.enabled) return;
     this.process(dt);
-    this.children.forEach(child => child.preprocess(dt));
     this.children.forEach(child => child._process(dt));
   }
 
@@ -72,7 +83,7 @@ export class GNode {
     * @param { T } child - The child node to add 
     * @returns { T } - The added child node
     */
-  addChild(child, debug = false) {
+  addChild(child) {
     assert(child instanceof GNode, "Child must be an instance of GNode");
 
     child.parent = this;
@@ -163,6 +174,16 @@ export class GNode {
     if (this.parent) {
       this.parent.triggerGlobal(eventName, detail);
     }
+  }
+
+  setIndex(index) {
+    assert(Number.isInteger(index), "Index must be an integer");
+    assert(this.parent, "Node must have a parent to set index");
+    const currentIndex = this.parent.children.indexOf(this);
+    assert(currentIndex !== -1, "Node must be a child of its parent to set index");
+
+    this.parent.children.splice(currentIndex, 1);
+    this.parent.children.splice(index, 0, this);
   }
 }
 

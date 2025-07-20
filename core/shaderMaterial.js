@@ -8,6 +8,7 @@ export const shaderPrograms = [];
 const compileShader = (string, type) => {
   const source = `#version 300 es\n` + string;
   const shader = gl.createShader(type);
+  shader._id = UUID.generate();
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
 
@@ -138,6 +139,9 @@ export const ShaderMaterial = (vertexShader, fragmentShader) => {
     get attributes() {
       return attributes;
     }
+
+    vertexShader = vertexShader;
+    fragmentShader = fragmentShader;
 
     params = {};
 
