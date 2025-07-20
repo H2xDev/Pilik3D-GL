@@ -11,7 +11,6 @@ Webgl, zero-dependencies 3D rendering engine
 ## Features
 - Zero dependencies
 - OBJ support
-- Primitive lighting system
 - Node-driven processing
 
 ## Launch
