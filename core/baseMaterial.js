@@ -1,8 +1,27 @@
 import { Camera3D, Color, DirectionalLight, ShaderMaterial, vertex, fragment, Vec3, Fog, gl, Transform3D } from './index.js';
-import { BASE_DEPTH_FRAGMENT_SHADER, DEBUG_DEPTH_FRAGMENT_SHADER } from './shaders/base.js';
 import { BASE_VERTEX_SHADER, BASE_FRAGMENT_SHADER } from './shaders/base.js';
 
-const DEPTH_FRAGMENT_SHADER = fragment(BASE_DEPTH_FRAGMENT_SHADER);
+/**
+  * Injects values from the definitions into the shader's source code.
+  *
+  * @param { string } shaderSource
+  * @param { Record<string, string | number> } definitions
+  */
+const injectDefinitions = (shaderSource, definitions) => {
+  Object.keys(definitions).forEach(key => {
+    let value = definitions[key];
+
+    if (key.toLowerCase().startsWith('float_')) {
+      value = value.toFixed(6)
+        .replace(/(\.(.+[1-9])(0+)$/g, '$1')
+        .replace(/\.0+$/g, '.0');
+    }
+    
+    shaderSource = shaderSource.replaceAll('#inject ' + key, definitions[key]);
+  });
+
+  return shaderSource;
+}
 
 /**
   * Defines a spatial material with customizable vertex and fragment shaders.
@@ -11,10 +30,8 @@ export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment
   v = BASE_VERTEX_SHADER.replace('void vertex() {}', v);
   f = BASE_FRAGMENT_SHADER.replace('void fragment(inout vec3 color) {}', f);
 
-  Object.keys(injections).forEach(key => {
-    v = v.replaceAll('#inject ' + key, injections[key]);
-    f = f.replaceAll('#inject ' + key, injections[key]);
-  });
+  v = injectDefinitions(v, injections);
+  f = injectDefinitions(f, injections);
 
   const VERTEX_SHADER = vertex(v);
   const FRAGMENT_SHADER = fragment(f);
@@ -67,10 +84,7 @@ export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment
       this.setParameter('SUN_PROJECTION', sun.projection);
       this.setParameter('SUN_ENERGY', sun ? sun.energy : 1.0);
 
-      // Set fog parameters
-      this.setParameter('FOG_COLOR', fog ? fog.color : Color.WHITE);
-      this.setParameter('FOG_DENSITY', fog ? fog.density : 0.0);
-      this.setParameter('FOG_TYPE', fog ? fog.type : 0);
+      fog.assignParameters(this);
 
       super.applyUniforms();
     }
