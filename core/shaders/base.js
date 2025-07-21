@@ -12,14 +12,9 @@ export const DEBUG_DEPTH_FRAGMENT_SHADER = /* glsl */`
   out vec4 outColor;
 
   void main() {
-    // Преобразуем clip space координаты в [0, 1] диапазон
     vec3 ndc = v_position_clip_space.xyz / v_position_clip_space.w;
-    ndc = ndc * 0.5 + 0.5; // Преобразование из [-1, 1] в [0, 1]
-
-    // Используем z-координату для глубины
+    ndc = ndc * 0.5 + 0.5;
     float depth = ndc.z;
-
-    // Выводим глубину как оттенок серого
     outColor = vec4(vec3(depth), 1.0);
   }
 `
@@ -120,7 +115,6 @@ export const BASE_FRAGMENT_SHADER = /* glsl */`
       float result = 0.0;
       float weightSum = 0.0;
   
-      // Приближённое Гауссово распределение
       float kernel[5] = float[](0.06, 0.12, 0.24, 0.12, 0.06);
   
       for (int x = -2; x <= 2; ++x) {
