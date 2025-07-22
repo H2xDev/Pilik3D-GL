@@ -46,9 +46,8 @@ void processFog(inout vec3 color) {
 
 float sampleShadowPCF(float bias, float texelSize) {
     vec3 proj = v_depth_texcoord.xyz / v_depth_texcoord.w;
-    proj = proj * 0.5 + 0.5; // Convert from NDC to [0, 1] range
+    proj = proj * 0.5 + 0.5;
 
-    // За пределами shadow map — не в тени
     if (proj.x < 0.0 || proj.x > 1.0 ||
         proj.y < 0.0 || proj.y > 1.0 ||
         proj.z < 0.0 || proj.z > 1.0)
