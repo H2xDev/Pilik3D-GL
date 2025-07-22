@@ -2,7 +2,7 @@ import { State, Camera3D, Vec3 } from '@core';
 import { MOVE_TO_CAR_STATE } from './moveToCarState.js';
 import { SongsManager } from '../songsManager.js';
 
-export const FLY_HEIGHT = 10.0;
+export const FLY_HEIGHT = 5.0;
 export const LOOK_AHEAD_DISTANCE = 20.0;
 
 export const FLYING_STATE = new class FlyingState extends State {
@@ -35,6 +35,7 @@ export const FLYING_STATE = new class FlyingState extends State {
 
   process(dt) {
     const { terrain } = this.scene;
+    this.scene.fog.density = 0.0125;
     this.cameraz -= dt;
 
     this.camera.position = terrain.getRoad(this.cameraz).add(new Vec3(0, FLY_HEIGHT, 0));

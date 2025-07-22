@@ -2,8 +2,6 @@ precision highp float;
 
 out vec4 outColor;
 
-uniform sampler2D SUN_DEPTH_TEXTURE;
-
 in vec3             v_normal;
 in vec4             v_position;
 in vec3             v_camera_world_position;
@@ -11,6 +9,9 @@ in vec3             v_camera_forward;
 in vec4             v_position_clip_space;
 in vec4             v_depth_texcoord;
 
+// Specular
+uniform bool        specular;
+uniform float       specular_power;
 uniform vec3        albedo_color;
 uniform float       shading_hardness;
 
@@ -20,16 +21,14 @@ uniform vec3        SUN_DIRECTION;
 uniform vec3        SUN_AMBIENT;
 uniform float       SUN_ENERGY;
 uniform float       SUN_SHADOW_BIAS;
+uniform float       SUN_TEXEL_SIZE;
+uniform sampler2D   SUN_DEPTH_TEXTURE;
 
 // Fog
 uniform vec3        FOG_COLOR;
 uniform bool        FOG_TYPE;
 uniform bool        FOG_ENABLED;
 uniform float       FOG_DENSITY;
-
-// Specular
-uniform bool        specular;
-uniform float       specular_power;
 
 void processFog(inout vec3 color) {
   if (!FOG_ENABLED) return;
@@ -46,9 +45,8 @@ void processFog(inout vec3 color) {
 
 float sampleShadowPCF(float bias, float texelSize) {
     vec3 proj = v_depth_texcoord.xyz / v_depth_texcoord.w;
-    proj = proj * 0.5 + 0.5; // Convert from NDC to [0, 1] range
+    proj = proj * 0.5 + 0.5;
 
-    // За пределами shadow map — не в тени
     if (proj.x < 0.0 || proj.x > 1.0 ||
         proj.y < 0.0 || proj.y > 1.0 ||
         proj.z < 0.0 || proj.z > 1.0)
@@ -77,7 +75,7 @@ float sampleShadowPCF(float bias, float texelSize) {
 }
 
 void processDirectionalLight(inout vec3 color) {
-  float shadowFactor = sampleShadowPCF(SUN_SHADOW_BIAS, 1.0 / 16384.0);
+  float shadowFactor = sampleShadowPCF(SUN_SHADOW_BIAS, SUN_TEXEL_SIZE);
 
   float sun_affection = pow(max(dot(v_normal, -SUN_DIRECTION), 0.0), 1.0 / shading_hardness);
   vec3 light_color = SUN_COLOR * sun_affection * shadowFactor;

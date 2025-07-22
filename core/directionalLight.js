@@ -8,7 +8,7 @@ import {
   ShaderMaterial, 
   gl, 
   fragment 
-} from '@core';
+} from '@core/index.js';
 
 import { BASE_DEPTH_FRAGMENT_SHADER } from './shaders/base.js';
 
@@ -16,19 +16,25 @@ export class DirectionalLight extends Camera3D {
   static programsCache = {};
   static fragmentShader = null;
 
-  screenSize = new Vec2(100, 100);
+  screenSize = new Vec2(50, 50);
   color = new Color(1, 1, 1);
   ambient = new Color(0.2, 0.2, 0.2);
-  energy = 3;
+  energy = 1;
 
   projectionType = "orthographic";
   far = 100;
   near = 0.001;
-  bias = 0.001;
+  bias = window.window.innerWidth < 1340 ? 0.0015 : 0.001;
+
   frameBuffer = gl.createFramebuffer();
   shadowTexture = gl.createTexture();
-  shadowTexelSize = 1 / 32;
-  textureSize = window.innerWidth < 1340 ? 16384 / 6.0 : 16384;
+  textureSize = 4096;
+  shadowTexelSize = 1.0 / this.textureSize;
+
+  /**
+    * @type { WebGLFramebuffer[] }
+    */
+  splits = 3;
 
   constructor(color = Color.WHITE, direction = Vec3.DOWN, ambient = new Color(0.2, 0.2, 0.2)) {
     super();
@@ -36,6 +42,12 @@ export class DirectionalLight extends Camera3D {
     this.ambient = ambient;
     this.transform.basis.forward = direction.normalized;
 
+    this.setupTextures();
+
+    gl.clearColor(this.ambient.r, this.ambient.g, this.ambient.b, 1.0);
+  }
+
+  setupTextures() {
     gl.bindTexture(gl.TEXTURE_2D, this.shadowTexture);
     gl.texImage2D(
       gl.TEXTURE_2D,
@@ -60,8 +72,6 @@ export class DirectionalLight extends Camera3D {
       this.shadowTexture,
       0
     );
-
-    gl.clearColor(this.ambient.r, this.ambient.g, this.ambient.b, 1.0);
   }
 
   /** @type { DirectionalLight } */
@@ -103,6 +113,7 @@ export class DirectionalLight extends Camera3D {
     material.setParameter('SUN_VIEW_MATRIX', this.globalTransform.inverse.toMat4());
     material.setParameter('SUN_PROJECTION', this.projection);
     material.setParameter('SUN_ENERGY', this.energy);
+    material.setParameter('SUN_TEXEL_SIZE', this.shadowTexelSize);
   }
 
   process(dt) {

@@ -7,24 +7,27 @@ import {
   DirectionalLight,
   FogType,
   StateMachine,
+  GameDebugger,
+  Vec2,
 } from '@core';
 
 import { Terrain } from './terrain.js';
 import { Player } from './player.js';
 import { til } from './utils.js';
 import { FLYING_STATE } from './states/flyingState.js';
-import { GameDebugger } from '@core';
 
 const AMBIENT_COLOR = Color.BLUE.mix(Color.WHITE, 0.5).saturation(0.25);
-const SUN_DIRECTION = Vec3.DOWN.add(Vec3.LEFT.mul(5.0)).normalized;
+const SUN_DIRECTION = Vec3.DOWN.add(Vec3.LEFT.mul(2.0)).normalized;
 
 export const Game = new class GameScene extends Scene {
-  sun             = this.addChild(new DirectionalLight(Color.ORANGE.saturation(0.5), SUN_DIRECTION, AMBIENT_COLOR));
+  sun             = Object.assign(this.addChild(new DirectionalLight(Color.ORANGE.saturation(0.5), SUN_DIRECTION, AMBIENT_COLOR)), {
+    energy: 4.0
+  })
   terrain         = this.addChild(new Terrain());
   player          = this.addChild(new Player());
   camera          = this.addChild(new Camera3D());
   stateMachine    = this.addChild(new StateMachine(FLYING_STATE));
-  fog             = this.addChild(new Fog(FogType.LINEAR, this.sun.ambient, 80));
+  fog             = this.addChild(new Fog(FogType.EXPONENTIAL, this.sun.ambient, 0.025));
   fps             = 0;
 
   async begin() {

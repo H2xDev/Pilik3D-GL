@@ -28,6 +28,10 @@ export class Transform3D {
     );
   }
 
+  clone() {
+    return Transform3D.IDENTITY.multiply(this);
+  }
+
   toMat4() {
     const b = this.basis.scaled(this.scale);
 

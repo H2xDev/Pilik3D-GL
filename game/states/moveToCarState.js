@@ -29,6 +29,9 @@ export const MOVE_TO_CAR_STATE = new class MoveToCarState extends State {
     const startFov = this.camera.fov;
     splash.classList.add('fade-out');
 
+    const startFogDensity = this.scene.fog.density;
+    const targetFogDensity = 0.025;
+
     Tween.begin(5000, (t, dt) => {
       t = Tween.easeInOutQuart(t);
       this.cameraz -= dt;
@@ -42,6 +45,7 @@ export const MOVE_TO_CAR_STATE = new class MoveToCarState extends State {
       this.camera.position = posA.lerp(posB, t);
       this.camera.fov = startFov + (t * (this.scene.camera.fov - startFov));
       this.scene.player.volume = t;
+      this.scene.fog.density = startFogDensity + (t * (targetFogDensity - startFogDensity));
     })
     .then(this.beginGame.bind(this))
     .then(() => SongsManager.showCurrentSong());

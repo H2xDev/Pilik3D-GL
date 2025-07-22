@@ -1,6 +1,23 @@
 in float road_value;
 in float road_x;
 
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+
+    vec2 u = f * f * (3.0 - 2.0 * f);
+
+    return mix(
+        mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x),
+        u.y
+    );
+}
+
 void fragment(inout vec3 color) {
   float cz = v_position.z + sin(v_position.x * 5.0) * 0.1;
 
@@ -13,9 +30,12 @@ void fragment(inout vec3 color) {
   float distance = 0.02;
   float line_width = 0.02;
 
+  float noise_value = noise(v_position.xz * 10.0 * (v_position.y * 10.0));
+
   color = mix(color, color * 0.8, wave * wave_affect);
 
   float asphalt_value = smoothstep(0.9, 1.0, road_value);
+  color = mix(color, color * 0.8, noise_value * (1.0 - asphalt_value));
   color = mix(color, vec3(0.2), asphalt_value);
 
   // Two lines on the road
@@ -24,4 +44,5 @@ void fragment(inout vec3 color) {
   vec3 line_color = vec3(1.0, 0.6, 0.0) * 0.5;
   color = mix(color, line_color, line_factor);
   color = mix(color, line_color, line_factor2);
+
 }

@@ -7,18 +7,20 @@ import {
   Camera3D,
   Vec2
 } from "@core/index.js";
+
 import { PlaneGeometry } from "../core/importers/plane.js";
 import { SEED, TerrainGenerator } from "./terrainGenerator.js";
 import { GameDebugger } from "@core";
 
-const RENDER_DISTANCE = 10;
-const SCALE = 0.25;
+const RENDER_DISTANCE = window.innerWidth < 1340 ? 6 : 12; // Number of chunks to render in each direction
+const TARGET_SIZE = 64;
+const CHUNK_SIZE = 254;
 
 const DEFAULTS = {
   renderDistance: RENDER_DISTANCE,
-  chunkSize: 64,
-  gridSize: 64 * SCALE,
-  scale: SCALE,
+  chunkSize: CHUNK_SIZE,
+  gridSize: TARGET_SIZE,
+  scale: TARGET_SIZE / CHUNK_SIZE, // Scale factor for the terrain
 }
 
 
@@ -59,7 +61,7 @@ export class Terrain extends Mesh {
     super(geometry, material);
     Object.assign(this.options, options);
 
-    this.scale = new Vec3(SCALE);
+    this.scale = new Vec3(options.scale);
     this.terrainGenerator = new TerrainGenerator(terrainOptions);
 
     GameDebugger.addDebugInfo('Rendered Chunks', () => this.renderedChunks);
@@ -91,16 +93,10 @@ export class Terrain extends Mesh {
     const halfDistance = Math.floor(renderDistance / 2);
 
     this.renderedChunks = 0;
-    // Rendering from camera position to in frustum
-    const cameraForward = Camera3D.current.basis.forward;
-    const offset = cameraForward.mul(chunkSize * terrainScale * 0.5).div(gridSize).round().mul(gridSize);
 
     for (let i = 0; i < renderDistance ** 2; i++) {
       let x = (i % renderDistance) * chunkSize - halfDistance * chunkSize;
       let z = Math.floor(i / renderDistance) * chunkSize - halfDistance * chunkSize;
-
-      x += offset.x; 
-      z += offset.z;
 
       this.transform.position = new Vec3(x, 0, z)
         .mul(terrainScale)
@@ -108,8 +104,6 @@ export class Terrain extends Mesh {
 
       this.renderedChunks += super.render(material) ? 1 : 0;
     }
-    
-
 
     return true;
   }

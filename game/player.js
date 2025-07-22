@@ -42,7 +42,7 @@ export class Player extends GNode3D {
   turnSpeed = 5;
   movementSpeed = 20;
   forwardSpeed = 0;
-  friction = 2;
+  friction = 5;
   debug = false;
   aim = Basis.IDENTITY;
   tireRotation = 0;
