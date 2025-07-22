@@ -49,7 +49,11 @@ export class GameLoop {
 		return this;
 	}
 
+  /**
+    * @param { Partial<{ style?: Partial<CSSStyleDeclaration>, width: number, height: number }> } options
+    */
 	setup(options = {}) {
+    document.createElement('div').style
 		Object.assign(canvas, options);
 		Object.assign(canvas.style, options.style || {});
     gl.enable(gl.DEPTH_TEST);

@@ -1,6 +1,4 @@
-import { Vec3 } from '../vec3.js';
-import { Color } from '../color.js';
-import { Geometry } from '../geometry.js';
+import { Vec3, Color, Geometry } from '@core';
 
 export class PlaneGeometry extends Geometry {
   constructor(sx, sy, fromCenter = false) {

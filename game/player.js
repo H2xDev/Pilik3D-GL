@@ -1,19 +1,33 @@
-import { Input, Vec3, Mesh, GNode3D, Color, Basis, getNormal, GSound, BaseMaterial, GameDebugger } from '@core/index.js';
+import { 
+  Input,
+  Vec3,
+  Mesh,
+  GNode3D,
+  Color,
+  Basis,
+  GSound,
+  ResourceManager,
+  getNormal,
+} from '@core';
+
 import { OBJImporter } from '@core/importers/obj.js';
 import { getAcceleration, getFrictionRate } from './utils.js';
 import { CylinderGeometry } from '@core/importers/cylinder.js';
 import { Terrain } from './terrain.js';
+import { Camera3D } from '@core';
+import { canvas } from '@core';
+import { Vec2 } from '@core';
 
 const GRAVITY = 2.81; // Gravity constant
 
-const CAR_MATERIAL = new BaseMaterial({
+const CAR_MATERIAL = ResourceManager.create('BaseMaterial', {
   albedo_color: Color.RED,
   shading_hardness: 3.0,
 })
 
 const BACK_TIRE_GEOMETRY = new CylinderGeometry(0.4, 2.5, 8);
 const FORWARD_TIRE_GEOMETRY = new CylinderGeometry(0.4, 0.4, 8);
-const TIRE_MATERIAL = new BaseMaterial({
+const TIRE_MATERIAL = ResourceManager.create('BaseMaterial', {
   albedo_color: Color.BLACK,
 })
 
@@ -33,7 +47,7 @@ export class Player extends GNode3D {
   aim = Basis.IDENTITY;
   tireRotation = 0;
   controlsDisabled = false;
-  autopilot = false;
+  autopilot = true;
   volume = 0.0;
 
   input = new Input({
@@ -122,13 +136,6 @@ export class Player extends GNode3D {
 
     this.camera.position = this.targetCameraPosition;
     this.camera.basis = this.model.globalTransform.basis;
-
-    // GameDebugger.addDebugInfo('Velocity', () => this.velocity.length);
-    // GameDebugger.addDebugInfo('Distance to road', () => {
-    //   return this.terrain
-    //     .getDistanceToRoad(this.position.x, this.position.z).toFixed(2) + 'meters';
-    // });
-    // GameDebugger.color("white");
   }
 
   /**
@@ -136,11 +143,13 @@ export class Player extends GNode3D {
     */
   process(dt) {
     if (!this.model) return;
+
     this.processAutopilot(dt);
     this.processCamera(dt);
     this.processMovement(dt);
     this.processGravity(dt);
     this.processSound(dt);
+    this.processTireAnimation(dt);
   }
 
   processAutopilot(dt) {
@@ -150,7 +159,7 @@ export class Player extends GNode3D {
     const forward = this.terrain.getRoadForward(this.position.add(vel).z);
     const angle = forward.angleTo(this.model.basis.forward, Vec3.UP);
     this.forwardSpeed = 0.8;
-    this.turnVelocity = -angle * 2.0;
+    this.turnVelocity = -angle * 4.0;
   }
 
   processSound(dt) {
@@ -176,7 +185,22 @@ export class Player extends GNode3D {
       .rotated(this.basis.up, this.turnVelocity * dt)
       .multiply(Basis.IDENTITY.rotated(Vec3.FORWARD, this.turnVelocity * 0.5 * -dt));
 
-    this.camera.fov = 45 + this.velocity.length * 3.0;
+    // this.camera.fov = 45 + this.velocity.length * 3.0;
+  }
+
+  processTireAnimation(dt) {
+    const tireRotation = Math.max(Math.PI * -0.25, Math.min(Math.PI * 0.25, -this.turnVelocity));
+
+    this.backTires.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
+      .rotate(Vec3.RIGHT, this.tireRotation);
+
+    this.forwardTire1.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
+      .rotate(Vec3.LEFT, this.tireRotation)
+      .rotate(Vec3.UP, tireRotation);
+
+    this.forwardTire2.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
+      .rotate(Vec3.LEFT, this.tireRotation)
+      .rotate(Vec3.UP, tireRotation);
   }
 
   processMovement(dt) {
@@ -192,27 +216,11 @@ export class Player extends GNode3D {
     this.position = this.position
       .add(this.velocity.mul(dt));
 
-    const tireRotation = Math.max(Math.PI * -0.25, Math.min(Math.PI * 0.25, -this.turnVelocity));
-
-    this.backTires.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
-      .rotate(Vec3.RIGHT, this.tireRotation);
-
-    this.forwardTire1.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
-      .rotate(Vec3.LEFT, this.tireRotation)
-      .rotate(Vec3.UP, tireRotation);
-
-    this.forwardTire2.basis = Basis.IDENTITY.lookAt(Vec3.FORWARD, Vec3.LEFT)
-      .rotate(Vec3.LEFT, this.tireRotation)
-      .rotate(Vec3.UP, tireRotation);
-
-
+    const acceleration = getAcceleration(this.movementSpeed, this.friction, dt);
     if (this.isOnGround) {
       this.rotationSign = this.velocity.mul(Vec3.XZ).dot(this.model.basis.forward) < 0 ? 1 : -1;
       this.turnVelocity += (x * this.forwardSpeed) * 3.0 * -dt;
       this.turnVelocity -= this.turnVelocity * dt;
-
-      const acceleration = getAcceleration(this.movementSpeed, this.friction, dt);
-      this.tireRotation += acceleration * this.forwardSpeed * dt;
 
       this.velocity = this.velocity
         .add(this.model.basis.forward.mul(acceleration * dt * this.forwardSpeed));
@@ -228,6 +236,8 @@ export class Player extends GNode3D {
     } else {
       this.model.basis.rotate(Vec3.UP, this.turnVelocity * dt);
     }
+
+    this.tireRotation += acceleration * this.forwardSpeed * dt;
   }
 
   /**
@@ -266,7 +276,5 @@ export class Player extends GNode3D {
 
     const targetPos = Math.max(targetY, this.position.y);
     this.position.y = targetPos;
-    // this.position.y -= (this.position.y - targetPos) * dt * 4;
-    // this.position.y -= (this.position.y - Math.max(this.position.y, targetPos)) * dt * 100;
   }
 }

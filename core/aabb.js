@@ -1,14 +1,47 @@
-import { Vec3 } from './vec3.js';
-
-const AABB_EDGES = [
-  [0, 1], [1, 2], [2, 3], [3, 0],
-  [4, 5], [5, 6], [6, 7], [7, 4],
-  [0, 4], [1, 5], [2, 6], [3, 7]
-];
+import { Camera3D, canvas, Vec2, Vec3 } from '@core';
 
 export class AABB {
-  size = new Vec3(1, 1, 1);
-  center = new Vec3(0, 0, 0);
+  size = Vec3.ONE;
+  center = Vec3.ZERO;
+  debug_ = false;
+  dom = document.createElement('div');
+  logged = false;
+
+  get debug() {
+    return this.debug_;
+  }
+
+  set debug(value) {
+    this.debug_ = value;
+    if (value) {
+      document.body.appendChild(this.dom);
+    } else {
+      this.dom.parentNode.removeChild(this.dom);
+    }
+  }
+
+  /**
+    * Creates an Axis-Aligned Bounding Box (AABB).
+    */
+  constructor(size, center) {
+    Object.assign(this, { size, center });
+
+    Object.assign(this.dom.style, {
+      position: 'absolute',
+      top: '0px',
+      left: '0px',
+      width: '32px',
+      height: '32px',
+      border: '1px solid green',
+      backgroundColor: 'red',
+      pointerEvents: 'none',
+      opacity: '0.5',
+    });
+
+    if (this.debug) {
+      document.body.appendChild(this.dom);
+    }
+  }
 
   get vertices() {
     const halfSize = this.size.mul(0.5);
@@ -24,18 +57,43 @@ export class AABB {
     ];
   }
 
-  /**
-    * @param { import('./camera3d').Camera3D } camera3d
-    * @param { import('./geometryNode').GeometryNode } node
-    * @param { import('./color.js').Color } color
-    */
-  static renderAABB(camera3d, node, color) {
-    const points = node.aabb.vertices
-      .map(point => point.mul(node.globalScale).add(node.globalPosition));
+  isInCamera(transform) {
+    const camera = Camera3D.current;
+    if (!camera) return false;
 
-    AABB_EDGES.forEach(([start, end]) => {
-      camera3d.drawLine(points[start], points[end], color, true);
-    });
-    camera3d.drawCircle(node.globalPosition, 4, color);
+    let smin = new Vec2(Infinity, Infinity);
+    let smax = new Vec2(-Infinity, -Infinity);
+    let hasAnyInFront = false;
+
+    for (const vertex of this.vertices) {
+      let screenPos = camera.toScreenPosition(vertex.applyTransform(transform));
+      if (!screenPos) continue;
+
+      hasAnyInFront = true;
+  
+      smin.x = Math.min(smin.x, screenPos.x);
+      smin.y = Math.min(smin.y, screenPos.y);
+      smax.x = Math.max(smax.x, screenPos.x);
+      smax.y = Math.max(smax.y, screenPos.y);
+    }
+  
+    if (!hasAnyInFront) return false;
+
+    if (this.debug) {
+      const width = canvas.width;
+      const height = canvas.height;
+      this.dom.style.left = `${smin.x * width}px`;
+      this.dom.style.top = `${smin.y * height}px`;
+      this.dom.style.width = `${(smax.x - smin.x) * width}px`;
+      this.dom.style.height = `${(smax.y - smin.y) * height}px`;
+    }
+
+  
+    const overlaps =
+      smax.x >= -0.1 && smin.x <= 1.1 &&
+      smax.y >= -0.1 && smin.y <= 1.1;
+  
+    return overlaps;
   }
 }
+

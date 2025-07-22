@@ -14,7 +14,9 @@ void fragment(inout vec3 color) {
   float line_width = 0.02;
 
   color = mix(color, color * 0.8, wave * wave_affect);
-  color = mix(color, vec3(0.2), road_value);
+
+  float asphalt_value = smoothstep(0.9, 1.0, road_value);
+  color = mix(color, vec3(0.2), asphalt_value);
 
   // Two lines on the road
   float line_factor = 1.0 - min(abs(v_position.x - (road_x - distance) * 2.0) / line_width, 1.0);

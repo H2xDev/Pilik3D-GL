@@ -1,5 +1,4 @@
-import { Vec3 } from "../vec3.js";
-import { Geometry } from "../geometry.js";
+import { Geometry, Vec3 } from "@core";
 
 export class OBJImporter extends Geometry {
   /**

@@ -1,5 +1,16 @@
-import { Camera3D, Color, DirectionalLight, ShaderMaterial, vertex, fragment, Vec3, Fog, gl, Transform3D } from './index.js';
-import { BASE_VERTEX_SHADER, BASE_FRAGMENT_SHADER } from './shaders/base.js';
+import { 
+  Camera3D, 
+  Color, 
+  DirectionalLight, 
+  ShaderMaterial, 
+  Vec3, 
+  Fog, 
+  ShadersManager,
+
+  vertex, 
+  fragment, 
+  gl, 
+} from './index.js';
 
 /**
   * Injects values from the definitions into the shader's source code.
@@ -13,7 +24,7 @@ const injectDefinitions = (shaderSource, definitions) => {
 
     if (key.toLowerCase().startsWith('float_')) {
       value = value.toFixed(6)
-        .replace(/(\.(.+[1-9])(0+)$/g, '$1')
+        .replace(/(\..+[1-9])(0+)$/g, '$1')
         .replace(/\.0+$/g, '.0');
     }
     
@@ -27,6 +38,9 @@ const injectDefinitions = (shaderSource, definitions) => {
   * Defines a spatial material with customizable vertex and fragment shaders.
   */
 export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment(inout vec3 color) {}', injections = {}) => {
+  const BASE_VERTEX_SHADER = ShadersManager.import('/core/shaders/base.vert.glsl');
+  const BASE_FRAGMENT_SHADER = ShadersManager.import('/core/shaders/base.frag.glsl');
+
   v = BASE_VERTEX_SHADER.replace('void vertex() {}', v);
   f = BASE_FRAGMENT_SHADER.replace('void fragment(inout vec3 color) {}', f);
 
@@ -69,26 +83,13 @@ export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, sun.shadowTexture);
-      gl.uniform1i(this.uniforms['SUN_DEPTH_TEXTURE'], 0);
-
       this.setParameter('CAMERA_VIEW_MATRIX', camera.globalTransform.inverse.toMat4());
       this.setParameter('PROJECTION', camera.projectionMatrix);
 
-      // Directional light parameters
-      this.setParameter('SUN_COLOR', sun ? sun.color : Color.WHITE);
-      this.setParameter('SUN_DIRECTION', sun ? sun.transform.basis.forward : Vec3.DOWN);
-      this.setParameter('SUN_AMBIENT', sun ? sun.ambient : Color.BLACK);
-      this.setParameter('SUN_VIEW_MATRIX', sun.globalTransform.inverse.toMat4());
-      this.setParameter('SUN_PROJECTION', sun.projection);
-      this.setParameter('SUN_ENERGY', sun ? sun.energy : 1.0);
-
-      fog.assignParameters(this);
+      sun && sun.assignParameters(this);
+      fog && fog.assignParameters(this);
 
       super.applyUniforms();
     }
   }
 };
-
-export const BaseMaterial = defineSpatialMaterial();

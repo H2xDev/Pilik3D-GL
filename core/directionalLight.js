@@ -1,5 +1,15 @@
-import { Color, gl, GNode3D, Vec3, orthographicProjection, Camera3D, ShaderMaterial, vertex, fragment } from './index.js';
-import { BASE_DEPTH_FRAGMENT_SHADER, BASE_VERTEX_SHADER } from './shaders/base.js';
+import { 
+  Color,
+  GNode3D, 
+  Vec3, 
+  Camera3D, 
+  ShaderMaterial, 
+  gl, 
+  orthographicProjection, 
+  fragment 
+} from './index.js';
+
+import { BASE_DEPTH_FRAGMENT_SHADER } from './shaders/base.js';
 
 export class DirectionalLight extends GNode3D {
   static programsCache = {};
@@ -7,15 +17,16 @@ export class DirectionalLight extends GNode3D {
 
   color = new Color(1, 1, 1);
   ambient = new Color(0.2, 0.2, 0.2);
-  energy = 4;
+  energy = 3;
 
   shadowSize = 50;
   far = 100.0;
   near = 0.0001;
+  bias = 0.001;
   frameBuffer = gl.createFramebuffer();
   shadowTexture = gl.createTexture();
   shadowTexelSize = 1 / 32;
-  textureSize = window.innerWidth < 1340 ? 4096 : 16384;
+  textureSize = window.innerWidth < 1340 ? 16384 / 6.0 : 16384;
 
   constructor(color = Color.WHITE, direction = Vec3.DOWN, ambient = new Color(0.2, 0.2, 0.2)) {
     super();
@@ -79,6 +90,25 @@ export class DirectionalLight extends GNode3D {
 
     programsCache[_id] = new (ShaderMaterial(vertexShader, fragmentShader))();
     return programsCache[_id];
+  }
+
+  /**
+    * This method called from a materrial. Just applying uniforms
+    *
+    * @param { InstanceType<ReturnType<import('./shaderMaterial.js').ShaderMaterial>> } material Material to apply fog parameters to
+    */
+  assignParameters(material) {
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.shadowTexture);
+    gl.uniform1i(material.uniforms['SUN_DEPTH_TEXTURE'], 0);
+
+    material.setParameter('SUN_SHADOW_BIAS', this.bias);
+    material.setParameter('SUN_COLOR', this.color);
+    material.setParameter('SUN_DIRECTION', this.transform.basis.forward);
+    material.setParameter('SUN_AMBIENT', this.ambient);
+    material.setParameter('SUN_VIEW_MATRIX', this.globalTransform.inverse.toMat4());
+    material.setParameter('SUN_PROJECTION', this.projection);
+    material.setParameter('SUN_ENERGY', this.energy);
   }
 
   process(dt) {

@@ -1,20 +1,32 @@
-import { BaseMaterial, GNode3D, gl } from "./index.js";
+import { AABB } from "./aabb.js";
+import { GNode3D, gl } from "./index.js";
+
+/**
+  * @typedef { InstanceType<ReturnType<import('./shaderMaterial.js').ShaderMaterial>> } Material
+  */
 
 export class Mesh extends GNode3D {
   static DEFAULT_MATERIAL = null;
 
+  /**
+    * @param { import('./index.js').Geometry } geometry_
+    */
   geometry_ = null;
 
   /**
-    * @type { import('./baseMaterial.js').BaseMaterial | null }
+    * @type { InstanceType<ReturnType<import('./shaderMaterial.js').ShaderMaterial>> | null }
     */
   material = null;
+
+  /**
+    * @type { AABB | null }
+    */
+  aabb = null;
+
   backfaceCulling = true;
   smoothShading = true;
-
-  vao = gl.createVertexArray();
-
   wireframe = false;
+  vao = gl.createVertexArray();
 
   set geometry(geometry_) {
     if (this.geometry_ === geometry_) return;
@@ -27,24 +39,13 @@ export class Mesh extends GNode3D {
   }
 
   /**
-    * @param { import('./geometry.js').Geometry } geometry_
-    * @param { import('./baseMaterial.js').BaseMaterial } material
+    * @param { import('./index.js').Geometry } geometry_
+    * @param { Material } material
     */
   constructor(geometry_, material) {
     super();
-    Mesh.DEFAULT_MATERIAL ??= new BaseMaterial();
-    material ??= Mesh.DEFAULT_MATERIAL;
-
     Object.assign(this, { geometry_, material });
     if (geometry_) this.setup();
-  }
-
-  /**
-    * @deprecated
-    */
-  assignGeometry(geometry_) {
-    this.geometry = geometry_;
-    return this;
   }
 
   cleanupAttributes() {
@@ -74,19 +75,36 @@ export class Mesh extends GNode3D {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.geometry.indexBuffer);
 
     gl.bindVertexArray(null);
+
+    const size = this.geometry.maxPosition.sub(this.geometry.minPosition);
+    const center = this.geometry.minPosition.add(size.mul(0.5));
+
+    this.aabb = new AABB(size, center);
   }
 
+  /**
+    * Renders the mesh using the provided material.
+    * @param { Material } material The material to use for rendering the mesh.
+    * @returns { boolean } Returns true if the mesh was rendered, false otherwise.
+    */
   render(material) {
-    if (!material) return;
+    // Here should be current camera to render (even the sun)
+    if (!this.aabb.isInCamera(this.globalTransform)) return false;
+    if (!material) return false;
+
     const renderType = this.wireframe ? gl.LINES : gl.TRIANGLES;
     material.setParameter("MODEL_MATRIX", this.globalTransform.toMat4());
+
     if (this.backfaceCulling) {
       gl.enable(gl.CULL_FACE);
       gl.cullFace(gl.BACK);
     }
+
     gl.bindVertexArray(this.vao);
     gl.drawElements(renderType, this.geometry.indices.length, gl.UNSIGNED_SHORT, 0);
     gl.bindVertexArray(null);
+
+    return true;
   }
 
   _render() {

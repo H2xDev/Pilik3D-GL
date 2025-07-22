@@ -1,14 +1,23 @@
-import { Mesh, Vec3, Color, defineSpatialMaterial, ShadersManager, Camera3D, gl, Vec2 } from "@core/index.js";
+import { 
+  Mesh, 
+  Vec3,
+  Color, 
+  defineSpatialMaterial,
+  ShadersManager,
+  Camera3D,
+  Vec2
+} from "@core/index.js";
 import { PlaneGeometry } from "../core/importers/plane.js";
 import { SEED, TerrainGenerator } from "./terrainGenerator.js";
+import { GameDebugger } from "@core";
 
-const RENDER_DISTANCE = 5;
-const SCALE = window.innerWidth < 1340 ? 1.0 : 0.25;
+const RENDER_DISTANCE = 10;
+const SCALE = 0.25;
 
 const DEFAULTS = {
   renderDistance: RENDER_DISTANCE,
-  chunkSize: 254,
-  gridSize: 254 * SCALE,
+  chunkSize: 64,
+  gridSize: 64 * SCALE,
   scale: SCALE,
 }
 
@@ -22,6 +31,7 @@ export class Terrain extends Mesh {
   options = { ...DEFAULTS };
   referencePosition = new Vec3(0, 0, 0);
   positionHash_ = '';
+  renderedChunks = 0;
 
   /**
     * @param { Partial<typeof this.options> } options - Configuration options for the terrain.
@@ -51,6 +61,10 @@ export class Terrain extends Mesh {
 
     this.scale = new Vec3(SCALE);
     this.terrainGenerator = new TerrainGenerator(terrainOptions);
+
+    GameDebugger.addDebugInfo('Rendered Chunks', () => this.renderedChunks);
+
+    this.aabb.debug = true;
   }
 
   /** @type { import("./player.js").Player } */
@@ -61,23 +75,40 @@ export class Terrain extends Mesh {
   process(dt) {
     const { gridSize } = this.options;
 
-    this.referencePosition = this.player.position
+    this.referencePosition = this.player.position.mul(Vec3.XZ)
       .div(gridSize).round().mul(gridSize);
   }
 
+  /**
+    * Renders the terrain chunks based on the current position and render distance.
+    * @param { import("@core").Material } material - The material to use for rendering.
+    */
   render(material) {
-    const { renderDistance, chunkSize, scale: terrainScale } = this.options;
-    this.position = new Vec3(0, 0, 0).mul(terrainScale).add(this.referencePosition);
-
+    const { renderDistance, chunkSize, scale: terrainScale, gridSize } = this.options;
     const halfDistance = Math.floor(renderDistance / 2);
 
-    for (let i = 0; i < renderDistance ** 2; i++) {
-      const x = (i % renderDistance) * chunkSize - halfDistance * chunkSize;
-      const z = Math.floor(i / renderDistance) * chunkSize - halfDistance * chunkSize;
+    this.renderedChunks = 0;
+    // Rendering from camera position to in frustum
+    const cameraForward = Camera3D.current.basis.forward;
+    const offset = cameraForward.mul(chunkSize * terrainScale * 0.5).div(gridSize).round().mul(gridSize);
 
-      this.position = new Vec3(x, 0, z).mul(terrainScale).add(this.referencePosition);
-      super.render(material);
+    for (let i = 0; i < renderDistance ** 2; i++) {
+      let x = (i % renderDistance) * chunkSize - halfDistance * chunkSize;
+      let z = Math.floor(i / renderDistance) * chunkSize - halfDistance * chunkSize;
+
+      x += offset.x; 
+      z += offset.z;
+
+      this.transform.position = new Vec3(x, 0, z)
+        .mul(terrainScale)
+        .add(this.referencePosition);
+
+      this.renderedChunks += super.render(material) ? 1 : 0;
     }
+    
+
+
+    return true;
   }
 
   _render() {

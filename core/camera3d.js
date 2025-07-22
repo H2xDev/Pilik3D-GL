@@ -1,10 +1,10 @@
 import { 
   GNode3D, 
-  DEG_TO_RAD,
-  shaderPrograms,
+  Vec3,
+  Vec2,
   canvas,
-  gl,
-} from "./index.js";
+  DEG_TO_RAD,
+} from "@core/index.js";
 
 export class Camera3D extends GNode3D {
   /** @type { Camera3D } */
@@ -21,6 +21,43 @@ export class Camera3D extends GNode3D {
 
   makeCurrent() {
     Camera3D.current = this;
+  }
+
+  /**
+    * @param { Vec3 } point
+    */
+  isPointInsideScreen(point) {
+    const screenPosition = this.toScreenPosition(point);
+    if (!screenPosition) return false;
+
+    const { x, y } = screenPosition;
+
+    return (
+      x > -1 && x < 1 &&
+      y > -1 && y < 1
+    );
+  }
+
+  isPointAhead(point) {
+    return true;
+  }
+
+  /**
+    * Converts a 3D point to a 2D screen position.
+    * @param { Vec3 } point - The 3D point to convert.
+    * @returns { Vec2 | null }
+    */
+  toScreenPosition(point) {
+    const viewPos = point.applyTransform(this.globalTransform.inverse);
+    const perspective = 1 / Math.tan(this.fov * DEG_TO_RAD / 2);
+    const aspect = canvas.width / canvas.height;
+  
+    if (viewPos.z >= 0) return null;
+
+    const x = viewPos.x / viewPos.z * perspective / aspect;
+    const y = viewPos.y / viewPos.z * perspective;
+  
+    return new Vec2(-x, y).mul(0.5).add(0.5);
   }
 
   get projectionMatrix() {

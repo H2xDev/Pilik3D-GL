@@ -9,5 +9,8 @@
       "@core": ["core/index.js"],
       "/game": ["game/*"]
     }
-	}
+	},
+  "include": [
+    "core/**/*.d.ts"
+  ]
 }

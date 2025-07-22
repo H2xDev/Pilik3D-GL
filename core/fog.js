@@ -1,9 +1,11 @@
-import { Color } from "./color.js";
-import { GNode } from "./gnode.js";
+import { Color, GNode } from "@core";
 
+/**
+  * @typedef { 0 | 1 } FogType
+  */
 export const FogType = {
-  LINEAR: 0,
-  EXPONENTIAL: 1,
+  /** @type { 0 } */  LINEAR: 0, 
+  /** @type { 1 } */  EXPONENTIAL: 1, 
 };
 
 export class Fog extends GNode {
@@ -13,22 +15,35 @@ export class Fog extends GNode {
     */
   static current = null;
 
+  /**
+    * Type of fog.
+    */
   type = FogType.LINEAR;
-  color = Color.WHITE;
-  density = 2.0; // For exponential fog, default density
-  enabled = true; // Whether fog is enabled
 
+  /**
+    * Color of the fog.
+    */
+  color = Color.WHITE;
+
+  /**
+    * Density of the exponential fog or start distance for linear fog.
+    */
+  density = 2.0;
+
+  /**
+    * End distance for linear fog.
+    */
+  end = 100.0;
+
+  /**
+    * @param { FogType } type Type of fog (linear or exponential)
+    * @param { Color } color Color of the fog
+    * @param { number } density Density of the fog (for exponential fog) or start distance (for linear fog)
+    */
   constructor(type = FogType.LINEAR, color = Color.WHITE, density = 2.0) {
     super();
 
-    if (Fog.current) return Fog.current;
-
-    Object.assign(this, {
-      type,
-      color,
-      density,
-    });
-
+    Object.assign(this, { type, color, density });
     Fog.current = this;
   }
 
@@ -42,8 +57,10 @@ export class Fog extends GNode {
     * @param { InstanceType<ReturnType<import('./shaderMaterial.js').ShaderMaterial>> } material Material to apply fog parameters to
     */
   assignParameters(material) {
+    material.setParameter('FOG_ENABLED', this.enabled);
     material.setParameter('FOG_COLOR', this.color);
     material.setParameter('FOG_DENSITY', this.density);
+    material.setParameter('FOG_END', this.end);
     material.setParameter('FOG_TYPE', this.type);
   }
 }

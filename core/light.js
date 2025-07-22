@@ -1,5 +1,4 @@
-import { GNode3D } from "./node3d.js";
-import { Color } from "./color.js";
+import { GNode3D, Color } from "@core";
 
 export class PointLight extends GNode3D {
   color = new Color(1, 1, 1);

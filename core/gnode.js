@@ -54,8 +54,11 @@ export class GNode {
    */
   process(dt) {}
 
-  /** @type { Function | null } */
-  render() {}
+  /**
+    * @virtual
+    * Method for rendering the node.
+    */
+  render(...args) {}
 
   /**
     * For internal use only. Renders the node and its children.

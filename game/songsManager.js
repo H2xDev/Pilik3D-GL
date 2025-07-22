@@ -13,6 +13,7 @@ export const SongsManager = new class {
   playlist = [
     'DPAwTqig4_c',
     'tTJdddso9Y4',
+    '_egA9RZrD5k',
   ]
   player = null;
   currentIndex = 0;

@@ -34,6 +34,24 @@ export class Vec2 {
     return new Vec2(v[component1], v[component2]);
   }
 
+  static min(...vecs) {
+    return vecs.reduce((minVec, currentVec) => {
+      return new Vec2(
+        Math.min(minVec.x, currentVec.x),
+        Math.min(minVec.y, currentVec.y)
+      );
+    }, new Vec2(Infinity, Infinity));
+  }
+
+  static max(...vecs) {
+    return vecs.reduce((maxVec, currentVec) => {
+      return new Vec2(
+        Math.max(maxVec.x, currentVec.x),
+        Math.max(maxVec.y, currentVec.y)
+      );
+    }, new Vec2(-Infinity, -Infinity));
+  }
+
   constructor(x = 0, y = x) {
     if (x instanceof Vec3) {
       y = x.z;
@@ -152,5 +170,9 @@ export class Vec2 {
     const len2 = Math.hypot(v.x, v.y);
     if (len1 === 0 || len2 === 0) return 0;
     return Math.acos(dot / (len1 * len2));
+  }
+
+  toString() {
+    return `Vec2(${this.x.toFixed(2)}, ${this.y.toFixed(2)})`;
   }
 }

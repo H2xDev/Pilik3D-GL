@@ -1,5 +1,4 @@
-import { Basis } from "./basis.js";
-import { Vec3 } from "./vec3.js";
+import { Basis, Vec3 } from "@core";
 
 export class Transform3D {
   basis = Basis.IDENTITY;

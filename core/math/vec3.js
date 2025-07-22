@@ -47,6 +47,37 @@ export class Vec3 {
     return new Vec3(0, 1, 1);
   }
 
+  /**
+    * Returns the maximum vector from a list of vectors.
+    *
+    * @param {...Vec3} vectors - The vectors to compare.
+    * @return {Vec3} The vector with the maximum x, y, and z components.
+    */
+  static max(...vectors) {
+    return vectors.reduce((max, v) => {
+      return new Vec3(
+        Math.max(max.x, v.x),
+        Math.max(max.y, v.y),
+        Math.max(max.z, v.z)
+      );
+    }, new Vec3(-Infinity, -Infinity, -Infinity));
+  }
+
+  /**
+    * Returns the minimum vector from a list of vectors.
+    *
+    * @param {...Vec3} vectors - The vectors to compare.
+    */
+  static min(...vectors) {
+    return vectors.reduce((min, v) => {
+      return new Vec3(
+        Math.min(min.x, v.x),
+        Math.min(min.y, v.y),
+        Math.min(min.z, v.z)
+      );
+    }, new Vec3(Infinity, Infinity, Infinity));
+  }
+
   get length() {
     return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
   }
@@ -196,7 +227,9 @@ export class Vec3 {
 
   /** @param { import('./transform3d.js').Transform3D } transform */
   applyTransform(transform) {
-    return this.mul(transform.scale).applyBasis(transform.basis).add(transform.position);
+    return this.mul(transform.scale)
+      .applyBasis(transform.basis)
+      .add(transform.position);
   }
 
   /** @param { import('./basis.js').Basis } basis */

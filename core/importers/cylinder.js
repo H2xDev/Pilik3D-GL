@@ -1,5 +1,4 @@
-import { Vec3 } from '../vec3.js';
-import { Geometry } from '../geometry.js';
+import { Vec3, Geometry } from '@core';
 
 export class CylinderGeometry extends Geometry {
   /**
