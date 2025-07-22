@@ -74,10 +74,8 @@ export class Camera3D extends GNode3D {
     */
   toScreenPosition(point) {
     const viewProj = Mat4.multiply(this.projection, this.globalTransform.inverse.toMat4());
-    const p = Mat4.transformVec3(viewProj, point); // возвращает уже делённые x/w, y/w, z/w
-  
-    // p в NDC: от -1 до 1
-    // если вне дальности камеры, можно отбросить
+    const p = Mat4.transformVec3(viewProj, point);
+
     if (p.z < -1 || p.z > 1) return null;
   
     const screenX = (p.x * 0.5 + 0.5);
