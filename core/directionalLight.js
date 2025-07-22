@@ -1,27 +1,29 @@
 import { 
   Color,
   GNode3D, 
+  AABB,
   Vec3, 
+  Vec2,
   Camera3D, 
   ShaderMaterial, 
   gl, 
-  orthographicProjection, 
   fragment 
-} from './index.js';
+} from '@core';
 
 import { BASE_DEPTH_FRAGMENT_SHADER } from './shaders/base.js';
 
-export class DirectionalLight extends GNode3D {
+export class DirectionalLight extends Camera3D {
   static programsCache = {};
   static fragmentShader = null;
 
+  screenSize = new Vec2(100, 100);
   color = new Color(1, 1, 1);
   ambient = new Color(0.2, 0.2, 0.2);
   energy = 3;
 
-  shadowSize = 50;
-  far = 100.0;
-  near = 0.0001;
+  projectionType = "orthographic";
+  far = 100;
+  near = 0.001;
   bias = 0.001;
   frameBuffer = gl.createFramebuffer();
   shadowTexture = gl.createTexture();
@@ -33,14 +35,6 @@ export class DirectionalLight extends GNode3D {
     this.color = color;
     this.ambient = ambient;
     this.transform.basis.forward = direction.normalized;
-
-    const width = this.shadowSize / 2;
-    const height = this.shadowSize / 2;
-    this.projection = orthographicProjection(
-      -width, width,
-      -height, height,
-      this.near, this.far,
-    );
 
     gl.bindTexture(gl.TEXTURE_2D, this.shadowTexture);
     gl.texImage2D(
@@ -113,6 +107,7 @@ export class DirectionalLight extends GNode3D {
 
   process(dt) {
     DirectionalLight.current = this;
+    this.clearDepth();
 
     this.transform.position = Camera3D.current.transform.position
       .add(this.transform.basis.forward.mul(-this.far * 0.5));
@@ -132,7 +127,7 @@ export class DirectionalLight extends GNode3D {
       material.setParameter('PROJECTION', this.projection);
 
       return material;
-    })
+    }, this)
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     gl.useProgram(null);

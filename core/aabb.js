@@ -33,9 +33,7 @@ export class AABB {
       width: '32px',
       height: '32px',
       border: '1px solid green',
-      backgroundColor: 'red',
       pointerEvents: 'none',
-      opacity: '0.5',
     });
 
     if (this.debug) {
@@ -57,10 +55,7 @@ export class AABB {
     ];
   }
 
-  isInCamera(transform) {
-    const camera = Camera3D.current;
-    if (!camera) return false;
-
+  isInCamera(transform, camera = Camera3D.current) {
     let smin = new Vec2(Infinity, Infinity);
     let smax = new Vec2(-Infinity, -Infinity);
     let hasAnyInFront = false;
@@ -80,20 +75,16 @@ export class AABB {
     if (!hasAnyInFront) return false;
 
     if (this.debug) {
-      const width = canvas.width;
-      const height = canvas.height;
+      const { x: width, y: height } = camera.screenSize;
+
       this.dom.style.left = `${smin.x * width}px`;
       this.dom.style.top = `${smin.y * height}px`;
       this.dom.style.width = `${(smax.x - smin.x) * width}px`;
       this.dom.style.height = `${(smax.y - smin.y) * height}px`;
     }
-
   
-    const overlaps =
-      smax.x >= -0.1 && smin.x <= 1.1 &&
-      smax.y >= -0.1 && smin.y <= 1.1;
-  
-    return overlaps;
+    return smax.x >= 0.0 && smin.x <= 1.0 &&
+      smax.y >= 0.0 && smin.y <= 1.0;
   }
 }
 

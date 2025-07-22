@@ -84,7 +84,7 @@ export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
       this.setParameter('CAMERA_VIEW_MATRIX', camera.globalTransform.inverse.toMat4());
-      this.setParameter('PROJECTION', camera.projectionMatrix);
+      this.setParameter('PROJECTION', camera.projection);
 
       sun && sun.assignParameters(this);
       fog && fog.assignParameters(this);

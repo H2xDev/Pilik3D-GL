@@ -63,13 +63,16 @@ export class Terrain extends Mesh {
     this.terrainGenerator = new TerrainGenerator(terrainOptions);
 
     GameDebugger.addDebugInfo('Rendered Chunks', () => this.renderedChunks);
-
-    this.aabb.debug = true;
   }
 
   /** @type { import("./player.js").Player } */
   get player() {
     return Camera3D.current || this.scene.player;
+  }
+
+  setup() {
+    super.setup();
+    this.aabb.size.y = this.aabb.size.x;
   }
 
   process(dt) {

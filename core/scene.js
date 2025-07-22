@@ -1,5 +1,4 @@
-import { DirectionalLight } from "./directionalLight.js";
-import { GNode } from "./gnode.js";
+import { Camera3D, DirectionalLight, GNode } from "@core";
 
 export class Scene extends GNode {
   /** @type { import('./camera3d.js').Camera3D | null } */
@@ -19,20 +18,16 @@ export class Scene extends GNode {
     * @param { GNode } node - Delta time since last frame
     * @param { Function } beforeEach - Function to call before rendering each node
     */
-  renderScene(beforeEach = () => {}, node = this) {
+  renderScene(beforeEach = () => {}, camera = Camera3D.current, node = this) {
     const material = beforeEach(node);
     if (!node.enabled) return
     if (material) {
-      node.render(material);
+      node.render(material, camera);
     }
-    node.children.forEach(child => this.renderScene(beforeEach, child));
+    node.children.forEach(child => this.renderScene(beforeEach, camera, child));
   }
 
   _process(dt) {
-    if (DirectionalLight.current) {
-      DirectionalLight.current.clearDepth();
-    }
-
     super._process(dt);
     this.time += dt;
   }

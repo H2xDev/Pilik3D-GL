@@ -1,5 +1,4 @@
-import { AABB } from "./aabb.js";
-import { GNode3D, gl } from "./index.js";
+import { GNode3D, gl, Camera3D, AABB } from "@core";
 
 /**
   * @typedef { InstanceType<ReturnType<import('./shaderMaterial.js').ShaderMaterial>> } Material
@@ -87,9 +86,8 @@ export class Mesh extends GNode3D {
     * @param { Material } material The material to use for rendering the mesh.
     * @returns { boolean } Returns true if the mesh was rendered, false otherwise.
     */
-  render(material) {
-    // Here should be current camera to render (even the sun)
-    if (!this.aabb.isInCamera(this.globalTransform)) return false;
+  render(material, camera = Camera3D.current) {
+    if (!this.aabb.isInCamera(this.globalTransform, camera)) return false;
     if (!material) return false;
 
     const renderType = this.wireframe ? gl.LINES : gl.TRIANGLES;

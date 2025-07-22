@@ -155,11 +155,11 @@ export class Player extends GNode3D {
   processAutopilot(dt) {
     if (!this.autopilot) return;
     if (!dt) return;
-    const vel = this.velocity;
+    const vel = this.velocity.mul(0.57);
     const forward = this.terrain.getRoadForward(this.position.add(vel).z);
     const angle = forward.angleTo(this.model.basis.forward, Vec3.UP);
     this.forwardSpeed = 0.8;
-    this.turnVelocity = -angle * 4.0;
+    this.turnVelocity = -angle * 2.0;
   }
 
   processSound(dt) {

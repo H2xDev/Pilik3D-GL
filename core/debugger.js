@@ -24,6 +24,8 @@ export const GameDebugger = new class {
       getter,
     }
     this.container.appendChild(el);
+    el.style.color = 'white';
+    el.style.textShadow = '0 0 2px black, 0 0 4px black';
   }
 
   color(value) {
