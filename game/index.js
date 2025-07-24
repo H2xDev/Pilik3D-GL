@@ -9,7 +9,7 @@ import {
   StateMachine,
   GameDebugger,
   Vec2,
-} from '@core';
+} from '@core/index.js';
 
 import { Terrain } from './terrain.js';
 import { Player } from './player.js';

@@ -1,7 +1,6 @@
 import { 
   Color,
   GNode3D, 
-  AABB,
   Vec3, 
   Vec2,
   Camera3D, 
@@ -16,7 +15,7 @@ export class DirectionalLight extends Camera3D {
   static programsCache = {};
   static fragmentShader = null;
 
-  screenSize = new Vec2(50, 50);
+  screenSize = new Vec2(100, 100);
   color = new Color(1, 1, 1);
   ambient = new Color(0.2, 0.2, 0.2);
   energy = 1;
@@ -24,17 +23,12 @@ export class DirectionalLight extends Camera3D {
   projectionType = "orthographic";
   far = 100;
   near = 0.001;
-  bias = window.window.innerWidth < 1340 ? 0.0015 : 0.001;
+  bias = 0.0003;
 
   frameBuffer = gl.createFramebuffer();
   shadowTexture = gl.createTexture();
-  textureSize = 4096;
+  textureSize = 4096 * 2.0;
   shadowTexelSize = 1.0 / this.textureSize;
-
-  /**
-    * @type { WebGLFramebuffer[] }
-    */
-  splits = 3;
 
   constructor(color = Color.WHITE, direction = Vec3.DOWN, ambient = new Color(0.2, 0.2, 0.2)) {
     super();
@@ -42,42 +36,26 @@ export class DirectionalLight extends Camera3D {
     this.ambient = ambient;
     this.transform.basis.forward = direction.normalized;
 
-    this.setupTextures();
+    this.setupTexture();
 
     gl.clearColor(this.ambient.r, this.ambient.g, this.ambient.b, 1.0);
   }
 
-  setupTextures() {
+  setupTexture() {
     gl.bindTexture(gl.TEXTURE_2D, this.shadowTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.DEPTH_COMPONENT32F,
-      this.textureSize, this.textureSize,
-      0,
-      gl.DEPTH_COMPONENT,
-      gl.FLOAT,
-      null
-    );
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT32F, this.textureSize, this.textureSize, 0, gl.DEPTH_COMPONENT, gl.FLOAT, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    
+
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.DEPTH_ATTACHMENT,
-      gl.TEXTURE_2D,
-      this.shadowTexture,
-      0
-    );
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.shadowTexture, 0);
   }
 
   /** @type { DirectionalLight } */
   static current = null;
   clearDepth() {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
     gl.viewport(0, 0, this.textureSize, this.textureSize);
     gl.clear(gl.DEPTH_BUFFER_BIT);
   }
@@ -116,31 +94,37 @@ export class DirectionalLight extends Camera3D {
     material.setParameter('SUN_TEXEL_SIZE', this.shadowTexelSize);
   }
 
-  process(dt) {
-    DirectionalLight.current = this;
-    this.clearDepth();
-
+  updatePosition() {
     this.transform.position = Camera3D.current.transform.position
       .add(this.transform.basis.forward.mul(-this.far * 0.5));
+  }
 
+  /**
+    * @param { GNode3D } node - Node to apply uniforms to
+    */
+  applyUniforms(node) {
+    if (!node.material) return;
+
+
+    const material = this.getMaterial(node.material.vertexShader);
+    gl.useProgram(material.program);
+    material.setParameter('CAMERA_VIEW_MATRIX', this.globalTransform.inverse.toMat4());
+    material.setParameter('PROJECTION', this.projection);
+
+    return material;
+  }
+
+  process() {
+    DirectionalLight.current = this;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-    gl.viewport(0, 0, this.textureSize, this.textureSize);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
 
-    this.scene.renderScene((node) => {
-      if (!(node instanceof GNode3D)) return;
-      if (!node.material) return;
+    this.updatePosition();
+    this.clearDepth();
 
+    this.scene.renderScene(this.applyUniforms.bind(this), this);
 
-      const material = this.getMaterial(node.material.vertexShader);
-      gl.useProgram(material.program);
-      material.setParameter('CAMERA_VIEW_MATRIX', this.globalTransform.inverse.toMat4());
-      material.setParameter('PROJECTION', this.projection);
-
-      return material;
-    }, this)
+    gl.bindTexture(gl.TEXTURE_2D, this.shadowTexture);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
     gl.useProgram(null);
   }
 }

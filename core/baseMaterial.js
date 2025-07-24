@@ -13,28 +13,6 @@ import {
 } from './index.js';
 
 /**
-  * Injects values from the definitions into the shader's source code.
-  *
-  * @param { string } shaderSource
-  * @param { Record<string, string | number> } definitions
-  */
-const injectDefinitions = (shaderSource, definitions) => {
-  Object.keys(definitions).forEach(key => {
-    let value = definitions[key];
-
-    if (key.toLowerCase().startsWith('float_')) {
-      value = value.toFixed(6)
-        .replace(/(\..+[1-9])(0+)$/g, '$1')
-        .replace(/\.0+$/g, '.0');
-    }
-    
-    shaderSource = shaderSource.replaceAll('#inject ' + key, definitions[key]);
-  });
-
-  return shaderSource;
-}
-
-/**
   * Defines a spatial material with customizable vertex and fragment shaders.
   */
 export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment(inout vec3 color) {}', injections = {}) => {
@@ -44,11 +22,8 @@ export const defineSpatialMaterial = (v = 'void vertex() {}', f = 'void fragment
   v = BASE_VERTEX_SHADER.replace('void vertex() {}', v);
   f = BASE_FRAGMENT_SHADER.replace('void fragment(inout vec3 color) {}', f);
 
-  v = injectDefinitions(v, injections);
-  f = injectDefinitions(f, injections);
-
-  const VERTEX_SHADER = vertex(v);
-  const FRAGMENT_SHADER = fragment(f);
+  const VERTEX_SHADER = vertex(v, injections);
+  const FRAGMENT_SHADER = fragment(f, injections);
 
   return class extends ShaderMaterial(VERTEX_SHADER, FRAGMENT_SHADER) {
     vertexShader = VERTEX_SHADER;

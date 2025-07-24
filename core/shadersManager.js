@@ -14,7 +14,8 @@ export const ShadersManager = new class ShadersManager {
     */
   async preload(...shaderPaths) {
     const promises = shaderPaths.map(async path => {
-      const source = await fetch(path).then(response => response.text());
+      let source = await fetch(path).then(response => response.text());
+      source = `// Source: ${path} \n` + source;
       this.shaders[path] = source;
     });
 

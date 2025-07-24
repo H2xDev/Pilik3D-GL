@@ -132,12 +132,11 @@ body {
   }
 }
 
-.splash.fade-out ~ .frame-edges {
-  &::before, &::after {
-    transition: height 1.0s ease-in-out;
-    transition-delay: 4s;
-    height: 0;
-  }
+.splash.fade-out ~ .frame-edges::before, 
+.splash.fade-out ~ .frame-edges::after {
+  transition: height 1.0s ease-in-out;
+  transition-delay: 4s;
+  height: 0;
 }
 
 .input-controls-wrapper {
@@ -161,8 +160,8 @@ body {
 }
 
 .input-button {
-  width: 7vw;
-  height: 7vw;
+  width: 10vw;
+  height: 10vw;
   background-color: white;
   z-index: 1000;
   border-radius: 50%;

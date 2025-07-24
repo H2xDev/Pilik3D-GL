@@ -47,7 +47,7 @@ export class Player extends GNode3D {
   aim = Basis.IDENTITY;
   tireRotation = 0;
   controlsDisabled = false;
-  autopilot = true;
+  autopilot = false;
   volume = 0.0;
 
   input = new Input({

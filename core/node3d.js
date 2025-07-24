@@ -63,4 +63,20 @@ export class GNode3D extends GNode {
 
     return this.transform;
   }
+
+  /**
+    * @virtual
+    * Method for rendering the node.
+    */
+  render(...args) {}
+
+  /**
+    * For internal use only. Renders the node and its children.
+    */
+  _render() {
+    if (!this.enabled) return;
+
+    this.render();
+    this.children.forEach(child => child instanceof GNode3D && child._render());
+  }
 }

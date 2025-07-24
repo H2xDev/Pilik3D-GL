@@ -5,16 +5,16 @@ import {
   defineSpatialMaterial,
   ShadersManager,
   Camera3D,
-  Vec2
+  Vec2,
+  GameDebugger,
 } from "@core/index.js";
 
 import { PlaneGeometry } from "../core/importers/plane.js";
 import { SEED, TerrainGenerator } from "./terrainGenerator.js";
-import { GameDebugger } from "@core";
 
-const RENDER_DISTANCE = window.innerWidth < 1340 ? 6 : 12; // Number of chunks to render in each direction
-const TARGET_SIZE = 64;
-const CHUNK_SIZE = 254;
+const RENDER_DISTANCE = window.innerWidth < 1340 ? 5 : 5; // Number of chunks to render in each direction
+const CHUNK_SIZE = 32;
+const TARGET_SIZE = 32;
 
 const DEFAULTS = {
   renderDistance: RENDER_DISTANCE,
@@ -34,6 +34,7 @@ export class Terrain extends Mesh {
   referencePosition = new Vec3(0, 0, 0);
   positionHash_ = '';
   renderedChunks = 0;
+  wireframe = false;
 
   /**
     * @param { Partial<typeof this.options> } options - Configuration options for the terrain.
@@ -67,9 +68,8 @@ export class Terrain extends Mesh {
     GameDebugger.addDebugInfo('Rendered Chunks', () => this.renderedChunks);
   }
 
-  /** @type { import("./player.js").Player } */
-  get player() {
-    return Camera3D.current || this.scene.player;
+  get camera() {
+    return Camera3D.current;
   }
 
   setup() {
@@ -80,7 +80,7 @@ export class Terrain extends Mesh {
   process(dt) {
     const { gridSize } = this.options;
 
-    this.referencePosition = this.player.position.mul(Vec3.XZ)
+    this.referencePosition = this.camera.position.mul(Vec3.XZ)
       .div(gridSize).round().mul(gridSize);
   }
 
@@ -94,13 +94,19 @@ export class Terrain extends Mesh {
 
     this.renderedChunks = 0;
 
+    const offset = this.camera.basis.forward.mul(gridSize * renderDistance * 0.33)
+      .div(gridSize)
+      .round()
+      .mul(gridSize);
+
     for (let i = 0; i < renderDistance ** 2; i++) {
       let x = (i % renderDistance) * chunkSize - halfDistance * chunkSize;
       let z = Math.floor(i / renderDistance) * chunkSize - halfDistance * chunkSize;
 
       this.transform.position = new Vec3(x, 0, z)
         .mul(terrainScale)
-        .add(this.referencePosition);
+        .add(this.referencePosition)
+        .add(offset);
 
       this.renderedChunks += super.render(material) ? 1 : 0;
     }

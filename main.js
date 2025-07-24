@@ -23,6 +23,7 @@ const CONFIG = {
 
 const preload =  async () => {
   await Pilik.ShadersManager.preload(
+    '/game/shaders/noise.glsl',
     '/game/shaders/terrain.vert.glsl',
     '/game/shaders/terrain.frag.glsl',
   )
@@ -31,7 +32,7 @@ const preload =  async () => {
 
 Pilik
   .init(document.body.querySelector('#game'), CONFIG, preload)
-  .then((gameLoop) => Promise.all([gameLoop, import('/game/index.js')]))
+  .then(gameLoop => Promise.all([gameLoop, import('/game/index.js')]))
   .then(([gameLoop, { Game }]) => gameLoop.changeScene(Game))
   .then(loop => loop.begin());
 

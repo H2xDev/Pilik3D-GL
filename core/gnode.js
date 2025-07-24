@@ -55,25 +55,8 @@ export class GNode {
   process(dt) {}
 
   /**
-    * @virtual
-    * Method for rendering the node.
-    */
-  render(...args) {}
-
-  /**
-    * For internal use only. Renders the node and its children.
-    */
-  _render() {
-    if (!this.enabled) return;
-
-    this.render();
-    this.children.forEach(child => child._render());
-  }
-
-  /**
    * For internal use only. Processes the node and its children.
    * @param { number } dt - Delta time since last frame
-   * @param { CanvasRenderingContext2D } ctx - Context for the current frame
    */
   _process(dt) {
     if (!this.enabled) return;

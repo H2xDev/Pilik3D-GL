@@ -42,6 +42,7 @@ import { GameLoop } from './gameLoop.js';
   */
 export const init = async (elementMountTo, options, preload = () => {}) => {
   await ShadersManager.preload(
+    '/core/shaders/shadowPCF.glsl',
     '/core/shaders/base.vert.glsl',
     '/core/shaders/base.frag.glsl',
   )

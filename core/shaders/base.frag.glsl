@@ -30,6 +30,8 @@ uniform bool        FOG_TYPE;
 uniform bool        FOG_ENABLED;
 uniform float       FOG_DENSITY;
 
+#include "/core/shaders/shadowPCF.glsl"
+
 void processFog(inout vec3 color) {
   if (!FOG_ENABLED) return;
 
@@ -43,39 +45,8 @@ void processFog(inout vec3 color) {
   color = mix(color, FOG_COLOR, 1.0 - fog_factor);
 }
 
-float sampleShadowPCF(float bias, float texelSize) {
-    vec3 proj = v_depth_texcoord.xyz / v_depth_texcoord.w;
-    proj = proj * 0.5 + 0.5;
-
-    if (proj.x < 0.0 || proj.x > 1.0 ||
-        proj.y < 0.0 || proj.y > 1.0 ||
-        proj.z < 0.0 || proj.z > 1.0)
-        return 1.0;
-
-    float result = 0.0;
-    float weightSum = 0.0;
-
-    float kernel[5] = float[](0.06, 0.12, 0.24, 0.12, 0.06);
-
-    for (int x = -2; x <= 2; ++x) {
-        for (int y = -2; y <= 2; ++y) {
-            vec2 offset = vec2(float(x), float(y)) * texelSize;
-            float sampleDepth = texture(SUN_DEPTH_TEXTURE, proj.xy + offset).r;
-
-            float weight = kernel[x + 2] * kernel[y + 2]; // 2-смещение: kernel[0..4]
-            weightSum += weight;
-
-            if (proj.z - bias < sampleDepth) {
-                result += weight;
-            }
-        }
-    }
-
-    return result / weightSum;
-}
-
 void processDirectionalLight(inout vec3 color) {
-  float shadowFactor = sampleShadowPCF(SUN_SHADOW_BIAS, SUN_TEXEL_SIZE);
+  float shadowFactor = shadowPCFBilinear(SUN_DEPTH_TEXTURE, v_depth_texcoord, SUN_TEXEL_SIZE, SUN_SHADOW_BIAS);
 
   float sun_affection = pow(max(dot(v_normal, -SUN_DIRECTION), 0.0), 1.0 / shading_hardness);
   vec3 light_color = SUN_COLOR * sun_affection * shadowFactor;
@@ -97,8 +68,11 @@ void processSpecular(inout vec3 color) {
   color += SUN_COLOR * s;
 }
 
-// Injected code for additional fragment processing
+// CUSTOM FRAGMENT SHADER ============================================================
+
 void fragment(inout vec3 color) {}
+
+// CUSTOM FRAGMENT SHADER END ========================================================
 
 void main() {
   vec3 color = albedo_color.rgb;

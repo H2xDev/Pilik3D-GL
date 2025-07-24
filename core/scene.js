@@ -1,6 +1,6 @@
-import { Camera3D, DirectionalLight, GNode } from "@core";
+import { Camera3D, GNode, GNode3D } from "@core/index.js";
 
-export class Scene extends GNode {
+export class Scene extends GNode3D {
   /** @type { import('./camera3d.js').Camera3D | null } */
   camera = null;
   time = 0;
@@ -15,16 +15,22 @@ export class Scene extends GNode {
   exit() {}
 
   /**
-    * @param { GNode } node - Delta time since last frame
-    * @param { Function } beforeEach - Function to call before rendering each node
+    * @template { Camera3D } TCamera
+    * @param { (node?: GNode) => import("./mesh").Material | void } beforeEach - Function to call before rendering each node
+    * @param { TCamera } camera Camera to use for rendering, defaults to the current camera
+    * @param { GNode } node Delta time since last frame
     */
-  renderScene(beforeEach = () => {}, camera = Camera3D.current, node = this) {
+  renderScene(beforeEach = () => {}, camera, node = this) {
+    if (!node || !node.enabled) return
+
     const material = beforeEach(node);
-    if (!node.enabled) return
-    if (material) {
-      node.render(material, camera);
-    }
+    if (node instanceof GNode3D && material) node.render(material, camera);
+
     node.children.forEach(child => this.renderScene(beforeEach, camera, child));
+  }
+
+  _render() {
+    this.children.forEach(child => child instanceof GNode3D && child._render());
   }
 
   _process(dt) {
